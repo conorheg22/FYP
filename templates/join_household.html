@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card homi p-4">
+  <h1 class="mb-4">Join a Household</h1>
+
+  <!-- Join Button referenced from Bootstrap (2025) Buttons documentation:
+       https://getbootstrap.com/docs/5.3/components/buttons/ -->
+  <form method="POST">
+    <div class="mb-3">
+      <label for="invite_code" class="form-label">Enter Invite Code</label>
+      <input type="text" name="invite_code" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Join</button>
+  </form>
+
+  {% if household %}
+  <div class="alert alert-success mt-4">
+    <h5>Joined: {{ household.name }}</h5>
+    {% if household.address %}
+    <p>Address: {{ household.address }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

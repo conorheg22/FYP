@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="bg-white p-4 rounded shadow-sm" style="max-width:600px">
+    <h1 class="h4 mb-3">✏️ Edit Chore</h1>
+    <form method="post">
+      <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input name="title" class="form-control" value="{{ chore.title }}" required />
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.db_test_list') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

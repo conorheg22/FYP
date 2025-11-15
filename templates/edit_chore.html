@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card homi p-4">
+  <h1 class="mb-4">Edit Chore</h1>
+
+  <form method="POST">
+    <div class="mb-3">
+      <label for="title" class="form-label">Chore Title</label>
+      <input type="text" class="form-control" id="title" name="title" value="{{ chore.title }}" required>
+    </div>
+
+    <!-- Save and Cancel Buttons referenced from Bootstrap (2025) Buttons documentation:
+         https://getbootstrap.com/docs/5.3/components/buttons/ -->
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a href="{{ url_for('main.db_test_list') }}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

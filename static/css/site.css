@@ -1,0 +1,142 @@
+/*
+   HOMI Site Styles
+   This file customizes the look of the web app.
+   It adds spacing, colors, and layout tweaks to the Bootstrap design.
+
+     <!-- Reference: Hegarty, C. (2024) Header and Footer Design — IS3312 Project Phase 1.
+     Unpublished student project, University College Cork.
+     The header and footer HTML structures were adapted from this previous project. -->
+*/
+
+/* --------- GENERAL --------- */
+
+/* Sets the main font and background for the site */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8f9fa; /* light gray background */
+  color: #333; /* dark gray text */
+  margin: 0;
+  padding: 0;
+}
+
+/* Adds padding and white background to main cards */
+.card.homi {
+  background-color: #fff;
+  border-radius: 1rem;      /* rounded corners */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); /* soft shadow */
+  border: none;
+}
+
+/* --------- NAVBAR --------- */
+
+/* Gives the header a soft gradient background */
+header.homi {
+  background: linear-gradient(90deg, #007bff, #00b4d8); /* blue gradient */
+}
+
+/* Styles the navigation bar links */
+.navbar-dark .navbar-nav .nav-link {
+  color: white; /* white text */
+  font-weight: 500;
+}
+
+/* When hovering over links */
+.navbar-dark .navbar-nav .nav-link:hover {
+  text-decoration: underline; /* underline on hover */
+}
+
+/* Highlights the active page link */
+.navbar-dark .navbar-nav .nav-link.active {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Logo image size in the navbar */
+.navbar-brand img {
+  height: 40px;
+  margin-right: 8px;
+}
+
+/* --------- BUTTONS --------- */
+
+/* Makes primary buttons match HOMI’s theme color */
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+/* Hover effect for primary buttons */
+.btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #004c99;
+}
+
+/* --------- FOOTER --------- */
+
+/* Footer text centered and muted */
+html, body {
+  height: 100%;               /* let the body fill the window */
+}
+
+body {
+  display: flex;
+  flex-direction: column;     /* make the body behave like a column */
+}
+
+main {
+  flex: 1;                    /* pushes the footer to the bottom */
+}
+
+footer.homi {
+  background-color: #007bff;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+}
+
+
+/* --------- IMAGES --------- */
+
+/* Large version of the logo on the homepage */
+.logo-large {
+  max-width: 100%;
+  height: auto;
+  width: 150px;
+}
+
+/* --------- FORMS --------- */
+
+/* Adds small shadow and rounded corners to form inputs */
+input.form-control {
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+/* Removes blue outline and replaces with gray when clicked */
+input.form-control:focus {
+  border-color: #00b4d8;
+  box-shadow: 0 0 0 0.2rem rgba(0, 180, 216, 0.25);
+}
+
+/* --------- LIST ITEMS --------- */
+
+/* Makes chores lists more readable */
+.list-group-item {
+  border: 1px solid #eee;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Completed chores (greyed out text) */
+.list-group-item.completed {
+  color: #888;
+  text-decoration: line-through;
+}
+
+/* --------- HEADINGS --------- */
+
+/* Gives all h1-h3 headings a consistent look */
+h1, h2, h3 {
+  font-weight: 600;
+  color: #222;
+}

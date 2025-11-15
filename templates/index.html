@@ -1,0 +1,23 @@
+{% extends "base.html" %}  <!-- Uses base.html layout -->
+
+{% block content %}
+  <!-- Welcome card that appears on the homepage -->
+    <!-- Card structure referenced from Bootstrap (2025) Cards documentation: https://getbootstrap.com/docs/5.3/components/card/ -->
+  <div class="card homi p-4 p-md-5">
+    <div class="row g-4 align-items-center">
+      <!-- Left side: logo -->
+      <div class="col-md-3 text-center">
+        <img class="logo-large" src="{{ url_for('static', filename='img/homi-logo.png') }}" alt="HOMI logo">
+      </div>
+      <!-- Right side: intro text and button -->
+      <div class="col-md-9">
+        <h1 class="h3 mb-2">Welcome to HOMI</h1>
+        <p class="text-muted mb-4">A simple app to coordinate chores and keep shared living smooth.</p>
+
+        <!-- Button style referenced from Bootstrap (2025) Buttons documentation:
+             https://getbootstrap.com/docs/5.3/components/buttons/ -->
+        <a class="btn btn-primary btn-lg" href="{{ url_for('main.db_test_list') }}">Open Chore Tracker</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

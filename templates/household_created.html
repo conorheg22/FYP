@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card homi p-4 text-center">
+  <h1 class="mb-3">Household Created!</h1>
+  <p class="text-muted">Your household has been successfully created.</p>
+
+  <p><strong>Name:</strong> {{ household.name }}</p>
+  {% if household.address %}
+  <p><strong>Address:</strong> {{ household.address }}</p>
+  {% endif %}
+  <p><strong>Invite Code:</strong> {{ household.invite_code }}</p>
+
+  <!-- Join Household Button referenced from Bootstrap (2025) Buttons documentation:
+       https://getbootstrap.com/docs/5.3/components/buttons/ -->
+  <a href="{{ url_for('main.join_household') }}" class="btn btn-primary mt-3">Join Household</a>
+</div>
+{% endblock %}
