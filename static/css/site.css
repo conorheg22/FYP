@@ -8,135 +8,208 @@
      The header and footer HTML structures were adapted from this previous project. -->
 */
 
-/* --------- GENERAL --------- */
+/* --------- THEME TOKENS --------- */
+:root {
+  --bg: #f3f6fd;                  /* soft light blue background like your screenshots */
+  --card: #ffffff;                /* card surface */
+  --text: #0f172a;                /* slate-900 */
+  --muted: #64748b;               /* slate-500 */
+  --border: rgba(15, 23, 42, 0.08);
 
-/* Sets the main font and background for the site */
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f8f9fa; /* light gray background */
-  color: #333; /* dark gray text */
-  margin: 0;
-  padding: 0;
+  --primary: #6d5dfc;             /* purple */
+  --primary-2: #8f7cff;           /* lighter purple */
+  --primary-soft: #eef2ff;        /* soft purple background */
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+
+  --danger: #ef4444;              /* red */
+  --success: #22c55e;             /* green */
+  --warning: #f59e0b;             /* amber */
 }
 
-/* Adds padding and white background to main cards */
-.card.homi {
-  background-color: #fff;
-  border-radius: 1rem;      /* rounded corners */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); /* soft shadow */
-  border: none;
+/* --------- GENERAL --------- */
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+/* Make default headings match modern UI */
+h1, h2, h3 {
+  font-weight: 700;
+  color: var(--text);
+}
+
+p, .text-muted {
+  color: var(--muted) !important;
+}
+
+/* --------- CARDS --------- */
+.card.homi,
+.homi-card {
+  background-color: var(--card);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+/* Optional: card with subtle left accent (like your stat cards) */
+.homi-accent {
+  position: relative;
+  overflow: hidden;
+}
+.homi-accent::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background: linear-gradient(180deg, var(--primary), var(--primary-2));
 }
 
 /* --------- NAVBAR --------- */
-
-/* Gives the header a soft gradient background */
+/* Your screenshots show a clean white nav with purple accents */
 header.homi {
-  background: linear-gradient(90deg, #007bff, #00b4d8); /* blue gradient */
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
 }
 
-/* Styles the navigation bar links */
-.navbar-dark .navbar-nav .nav-link {
-  color: white; /* white text */
-  font-weight: 500;
-}
-
-/* When hovering over links */
-.navbar-dark .navbar-nav .nav-link:hover {
-  text-decoration: underline; /* underline on hover */
-}
-
-/* Highlights the active page link */
-.navbar-dark .navbar-nav .nav-link.active {
-  font-weight: 600;
-  text-decoration: underline;
-}
-
-/* Logo image size in the navbar */
+/* Brand logo image size in the navbar */
 .navbar-brand img {
   height: 40px;
   margin-right: 8px;
 }
 
-/* --------- BUTTONS --------- */
-
-/* Makes primary buttons match HOMI’s theme color */
-.btn-primary {
-  background-color: #007bff;
-  border-color: #007bff;
+/* Nav links */
+.navbar .nav-link {
+  color: #334155 !important; /* slate-700 */
+  font-weight: 600;
 }
 
-/* Hover effect for primary buttons */
-.btn-primary:hover {
-  background-color: #0056b3;
-  border-color: #004c99;
+.navbar .nav-link:hover {
+  color: var(--primary) !important;
+  text-decoration: none;
 }
 
-/* --------- FOOTER --------- */
-
-/* Footer text centered and muted */
-html, body {
-  height: 100%;               /* let the body fill the window */
+/* Active link */
+.navbar .nav-link.active {
+  color: var(--primary) !important;
 }
 
-body {
-  display: flex;
-  flex-direction: column;     /* make the body behave like a column */
-}
-
-main {
-  flex: 1;                    /* pushes the footer to the bottom */
-}
-
-footer.homi {
-  background-color: #007bff;
+/* If you use Bootstrap .navbar-dark anywhere, keep it readable */
+.navbar-dark .navbar-nav .nav-link {
   color: white;
-  text-align: center;
-  padding: 1rem;
+  font-weight: 600;
+}
+.navbar-dark .navbar-nav .nav-link:hover {
+  text-decoration: underline;
 }
 
+/* --------- BUTTONS --------- */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  padding: 10px 16px;
+}
 
-/* --------- IMAGES --------- */
+.btn-primary:hover {
+  filter: brightness(0.95);
+}
 
-/* Large version of the logo on the homepage */
+.btn-outline-primary {
+  border-color: rgba(109, 93, 252, 0.45);
+  color: var(--primary);
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.btn-outline-primary:hover {
+  background: var(--primary-soft);
+  border-color: rgba(109, 93, 252, 0.6);
+  color: var(--primary);
+}
+
+/* Small icon buttons (edit/delete) */
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --------- FORMS --------- */
+input.form-control, select.form-control, textarea.form-control {
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+}
+
+input.form-control:focus, select.form-control:focus, textarea.form-control:focus {
+  border-color: rgba(109, 93, 252, 0.75);
+  box-shadow: 0 0 0 0.2rem rgba(109, 93, 252, 0.15);
+}
+
+/* --------- LIST ITEMS --------- */
+.list-group-item {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+
+.list-group-item.completed {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+/* --------- BADGES / TAGS --------- */
+.badge {
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 700;
+}
+
+.badge-priority {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.badge-overdue {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+.badge-upcoming {
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+}
+
+/* --------- HOMEPAGE / LOGO --------- */
 .logo-large {
   max-width: 100%;
   height: auto;
   width: 150px;
 }
 
-/* --------- FORMS --------- */
-
-/* Adds small shadow and rounded corners to form inputs */
-input.form-control {
-  border-radius: 0.5rem;
-  box-shadow: none;
-}
-
-/* Removes blue outline and replaces with gray when clicked */
-input.form-control:focus {
-  border-color: #00b4d8;
-  box-shadow: 0 0 0 0.2rem rgba(0, 180, 216, 0.25);
-}
-
-/* --------- LIST ITEMS --------- */
-
-/* Makes chores lists more readable */
-.list-group-item {
-  border: 1px solid #eee;
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-/* Completed chores (greyed out text) */
-.list-group-item.completed {
-  color: #888;
-  text-decoration: line-through;
-}
-
-/* --------- HEADINGS --------- */
-
-/* Gives all h1-h3 headings a consistent look */
-h1, h2, h3 {
-  font-weight: 600;
-  color: #222;
+/* --------- FOOTER --------- */
+footer.homi {
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  text-align: center;
+  padding: 1rem;
 }

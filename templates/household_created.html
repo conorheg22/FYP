@@ -1,17 +1,46 @@
 {% extends "base.html" %}
+
 {% block content %}
+
+<!--
+  Household Created Page
+  ----------------------
+  This page appears immediately after a new household is created.
+  It confirms:
+    - Household name
+    - Optional address
+    - Auto-generated invite code that others can use to join
+  It also provides a button to bring users straight to the Join Household page.
+-->
+
 <div class="card homi p-4 text-center">
+
+  <!-- Page title -->
   <h1 class="mb-3">Household Created!</h1>
+
+  <!-- Brief confirmation text -->
   <p class="text-muted">Your household has been successfully created.</p>
 
+  <!-- Display household name -->
   <p><strong>Name:</strong> {{ household.name }}</p>
+
+  <!-- Display address only if one was entered -->
   {% if household.address %}
-  <p><strong>Address:</strong> {{ household.address }}</p>
+    <p><strong>Address:</strong> {{ household.address }}</p>
   {% endif %}
+
+  <!-- Display the unique invite code (used by others to join) -->
   <p><strong>Invite Code:</strong> {{ household.invite_code }}</p>
 
-  <!-- Join Household Button referenced from Bootstrap (2025) Buttons documentation:
-       https://getbootstrap.com/docs/5.3/components/buttons/ -->
-  <a href="{{ url_for('main.join_household') }}" class="btn btn-primary mt-3">Join Household</a>
+  <!--
+    Button to bring the user to the Join Household page.
+    Styled using Bootstrap’s primary button.
+    Reference: Bootstrap (2025) Button documentation.
+  -->
+  <a href="{{ url_for('main.join_household') }}" class="btn btn-primary mt-3">
+    Join Household
+  </a>
+
 </div>
+
 {% endblock %}

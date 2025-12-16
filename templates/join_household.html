@@ -1,25 +1,57 @@
 {% extends "base.html" %}
+
 {% block content %}
+
+<!--
+  Join Household Page
+  -------------------
+  This page allows a logged-in user to join an existing household using its invite code.
+  The form POSTs to the same route (main.join_household) which:
+    - Validates the invite code
+    - Sets the active household in the session
+    - Returns this same template with a success message
+-->
+
 <div class="card homi p-4">
+
+  <!-- Page title -->
   <h1 class="mb-4">Join a Household</h1>
 
-  <!-- Join Button referenced from Bootstrap (2025) Buttons documentation:
-       https://getbootstrap.com/docs/5.3/components/buttons/ -->
+  <!--
+    Invite Code Form
+    - User enters a code generated when someone created a household
+    - Required field
+    - POST triggers lookup in the database
+    - Button styling follows Bootstrap (2025) Buttons documentation
+  -->
   <form method="POST">
     <div class="mb-3">
       <label for="invite_code" class="form-label">Enter Invite Code</label>
       <input type="text" name="invite_code" class="form-control" required>
     </div>
+
+    <!-- Submit button -->
     <button type="submit" class="btn btn-primary">Join</button>
   </form>
 
+  <!--
+    SUCCESS MESSAGE
+    ----------------
+    If the backend finds a household with this code, it passes the household object
+    back into the template.
+    This block then displays a Bootstrap success alert confirming the join.
+  -->
   {% if household %}
   <div class="alert alert-success mt-4">
     <h5>Joined: {{ household.name }}</h5>
+
+    <!-- Only show address if the household has one -->
     {% if household.address %}
-    <p>Address: {{ household.address }}</p>
+      <p>Address: {{ household.address }}</p>
     {% endif %}
   </div>
   {% endif %}
+
 </div>
+
 {% endblock %}

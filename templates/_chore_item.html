@@ -1,0 +1,63 @@
+<li class="list-group-item d-flex justify-content-between align-items-start">
+  <div>
+    <span class="fw-semibold">
+      {{ c.title }}
+    </span>
+
+    <span class="text-muted small d-block">
+      Created {{ c.created_at.strftime('%d %b %Y') }}
+    </span>
+
+    {% if c.due_date %}
+      <span class="badge bg-warning text-dark mt-1">
+        Due {{ c.due_date.strftime('%d %b %Y') }}
+      </span>
+    {% endif %}
+
+    {% if c.assigned_to_user_id %}
+      {% if c.assigned_to_user_id == session.get('user_id') %}
+        <span class="badge bg-secondary mt-1">Assigned to you</span>
+      {% else %}
+        <span class="badge bg-secondary mt-1">Assigned to another housemate</span>
+      {% endif %}
+    {% else %}
+      <span class="badge bg-light text-muted border mt-1">Unassigned</span>
+    {% endif %}
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+
+    <!-- Mark done / undo -->
+    <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=c.id) }}">
+      <button class="btn btn-sm btn-outline-success">
+        {% if c.completed %}Mark as active{% else %}Mark done{% endif %}
+      </button>
+    </form>
+
+    <!-- Assign / unassign -->
+    {% if not c.assigned_to_user_id %}
+      <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=c.id) }}">
+        <button class="btn btn-sm btn-outline-primary">Assign to me</button>
+      </form>
+    {% elif c.assigned_to_user_id == session.get('user_id') %}
+      <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=c.id) }}">
+        <button class="btn btn-sm btn-outline-secondary">Remove from me</button>
+      </form>
+    {% else %}
+      <span class="text-muted small align-self-center">
+        Currently with another housemate
+      </span>
+    {% endif %}
+
+    <!-- Edit -->
+    <a href="{{ url_for('main.db_test_edit', chore_id=c.id) }}" class="btn btn-sm btn-outline-warning">
+      Edit
+    </a>
+
+    <!-- Delete -->
+    <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=c.id) }}">
+      <button class="btn btn-sm btn-outline-danger">Delete</button>
+    </form>
+
+  </div>
+</li>

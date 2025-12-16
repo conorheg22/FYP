@@ -1,111 +1,359 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card homi p-4">
-  <h1 class="mb-4">Household Chores</h1>
-  <p class="text-muted">Manage, track, and get inspired with suggested chores for your household.</p>
 
-  <!-- ADD CHORE FORM -->
-    <!-- Reference: Bootstrap (2025) Buttons – Bootstrap v5.3 Documentation. -->
-    <!-- Reference: Bootstrap (2025) Cards – Bootstrap v5.3 Documentation. -->
-  <form method="POST" action="{{ url_for('main.db_test_add') }}" class="mt-4 mb-5">
-    <div class="input-group">
-      <input type="text" name="title" class="form-control" placeholder="Add a new chore (e.g. Clean kitchen)" required>
-      <button class="btn btn-primary" type="submit">Add</button>
-    </div>
-  </form>
+<!--
+  Chore dashboard for the active household.
+  Shows: Overdue, Upcoming, No due date, Completed, plus Suggested chores.
+-->
 
-  <!-- ACTIVE CHORES -->
-<!-- Reference: Bootstrap (2025) Buttons – Bootstrap v5.3 Documentation. -->
-<!-- Reference: Bootstrap (2025) Cards – Bootstrap v5.3 Documentation. -->
-  <h3 class="mb-3 mt-4 text-uppercase fs-5 text-muted">Active Chores</h3>
-  {% if chores|selectattr("completed", "equalto", False)|list %}
-    <ul class="list-group mb-4">
-      {% for c in chores if not c.completed %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <span class="fw-semibold">{{ c.title }}</span>
-          <span class="text-muted small d-block">Created {{ c.created_at.strftime('%d %b %Y') }}</span>
-        </div>
-<!-- ChatGPT (2025) assisted with CRUD button alignment and Bootstrap classes: https://chatgpt.com/share/690e52e9-fc0c-8007-8140-00c1baa0f87e-->
-        <div class="d-flex gap-2">
-          <!-- Mark Done Button - referenced from Bootstrap (2025) Buttons documentation -->
-          <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=c.id) }}">
-            <button class="btn btn-sm btn-outline-success">Mark Done</button>
-          </form>
+<div class="row mb-4">
+  <div class="col-12">
+    <h1 class="h3 mb-1">Household chores</h1>
+    {% if household %}
+      <p class="text-muted mb-0">
+        Managing chores for <strong>{{ household.name }}</strong>
+      </p>
+    {% else %}
+      <p class="text-muted mb-0">
+        Please join or create a household to start managing chores.
+      </p>
+    {% endif %}
+  </div>
+</div>
 
-          <!-- Delete & Edit Buttons - referenced from Bootstrap (2025) Buttons documentation -->
-          <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=c.id) }}">
-            <button class="btn btn-sm btn-outline-danger">Delete</button>
-            <a href="{{ url_for('main.db_test_edit', chore_id=c.id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
-          </form>
-        </div>
-      </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted fst-italic">No active chores — nice work!</p>
-  {% endif %}
+<!-- ADD CHORE FORM -->
+<div class="row mb-4">
+  <div class="col-12 col-md-8 col-lg-6">
+    <form class="row g-2" method="POST" action="{{ url_for('main.db_test_add') }}">
+      <div class="col-12 col-md-7">
+        <input
+          type="text"
+          name="title"
+          class="form-control"
+          placeholder="Add a new chore (e.g. Clean kitchen, Take out bins)"
+          required
+        >
+      </div>
+      <div class="col-12 col-md-3">
+        <input
+          type="date"
+          name="due_date"
+          class="form-control"
+          aria-label="Due date (optional)"
+        >
+      </div>
+      <div class="col-12 col-md-2 d-grid">
+        <button class="btn btn-primary" type="submit">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-  <!-- COMPLETED CHORES -->
-  <h3 class="mb-3 mt-5 text-uppercase fs-5 text-muted">Completed Chores</h3>
-  {% if chores|selectattr("completed", "equalto", True)|list %}
-    <ul class="list-group mb-5">
-      {% for c in chores if c.completed %}
-      <li class="list-group-item d-flex justify-content-between align-items-center text-muted">
-        <div>
-          <del>{{ c.title }}</del>
-          <span class="small d-block text-muted">Completed ✓</span>
-        </div>
-        <!-- Undo Button - referenced from Bootstrap (2025) Buttons documentation -->
-        <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=c.id) }}">
-          <button class="btn btn-sm btn-outline-secondary">Undo</button>
-        </form>
-      </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted fst-italic">No chores completed yet.</p>
-  {% endif %}
+<!-- OVERDUE CHORES -->
+<div class="row mt-3">
+  <div class="col-12 col-lg-8">
+    <h3 class="mb-3 text-uppercase fs-6 text-muted">Overdue chores</h3>
 
-  <!-- SUGGESTED CHORES -->
-<!-- Reference: ChatGPT (2025) Help with card layout for suggested chores.
-     Conversation available at: https://chatgpt.com/share/690e52e9-fc0c-8007-8140-00c1baa0f87e
-     ChatGPT assisted with creating a responsive Bootstrap card grid
-     for dynamically looping through chores in the suggested section. -->
-  <h3 class="mb-3 mt-5 text-uppercase fs-5 text-muted">Suggested Chores</h3>
-<!-- Reference: Bootstrap (2025) Buttons – Bootstrap v5.3 Documentation. -->
-<!-- Reference: Bootstrap (2025) Cards – Bootstrap v5.3 Documentation. -->
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+    {% if overdue_chores %}
+      <ul class="list-group mb-4">
+        {% for c in overdue_chores %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <span class="fw-semibold text-danger">{{ c.title }}</span>
+              <span class="text-muted small d-block">
+                Created {{ c.created_at.strftime('%d %b %Y') }}
+              </span>
+
+              {% if c.due_date %}
+                <span class="badge bg-danger mt-1">
+                  Due {{ c.due_date.strftime('%d %b %Y') }}
+                </span>
+              {% endif %}
+
+              {% if c.assigned_to_user_id %}
+                {% if c.assigned_to_user_id == session.get('user_id') %}
+                  <span class="badge bg-secondary mt-1">Assigned to you</span>
+                {% else %}
+                  <span class="badge bg-secondary mt-1">Assigned to another housemate</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-light text-muted border mt-1">Unassigned</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <!-- Mark as done -->
+              <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-success">Mark done</button>
+              </form>
+
+              <!-- Assign / unassign logic -->
+              {% if not c.assigned_to_user_id %}
+                <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-primary">Assign to me</button>
+                </form>
+              {% elif c.assigned_to_user_id == session.get('user_id') %}
+                <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-secondary">Remove from me</button>
+                </form>
+              {% else %}
+                <span class="text-muted small align-self-center">
+                  Currently with another housemate
+                </span>
+              {% endif %}
+
+              <!-- Edit -->
+              <a href="{{ url_for('main.db_test_edit', chore_id=c.id) }}"
+                 class="btn btn-sm btn-outline-warning">
+                Edit
+              </a>
+
+              <!-- Delete -->
+              <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted fst-italic">No overdue chores. Nice going!</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- UPCOMING CHORES -->
+<div class="row mt-4">
+  <div class="col-12 col-lg-8">
+    <h3 class="mb-3 text-uppercase fs-6 text-muted">Upcoming chores</h3>
+
+    {% if upcoming_chores %}
+      <ul class="list-group mb-4">
+        {% for c in upcoming_chores %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <span class="fw-semibold">{{ c.title }}</span>
+              <span class="text-muted small d-block">
+                Created {{ c.created_at.strftime('%d %b %Y') }}
+              </span>
+
+              {% if c.due_date %}
+                <span class="badge bg-warning text-dark mt-1">
+                  Due {{ c.due_date.strftime('%d %b %Y') }}
+                </span>
+              {% endif %}
+
+              {% if c.assigned_to_user_id %}
+                {% if c.assigned_to_user_id == session.get('user_id') %}
+                  <span class="badge bg-secondary mt-1">Assigned to you</span>
+                {% else %}
+                  <span class="badge bg-secondary mt-1">Assigned to another housemate</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-light text-muted border mt-1">Unassigned</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-success">Mark done</button>
+              </form>
+
+              {% if not c.assigned_to_user_id %}
+                <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-primary">Assign to me</button>
+                </form>
+              {% elif c.assigned_to_user_id == session.get('user_id') %}
+                <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-secondary">Remove from me</button>
+                </form>
+              {% else %}
+                <span class="text-muted small align-self-center">
+                  Currently with another housemate
+                </span>
+              {% endif %}
+
+              <a href="{{ url_for('main.db_test_edit', chore_id=c.id) }}"
+                 class="btn btn-sm btn-outline-warning">
+                Edit
+              </a>
+
+              <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted fst-italic">No upcoming chores scheduled.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- CHORES WITH NO DUE DATE -->
+<div class="row mt-4">
+  <div class="col-12 col-lg-8">
+    <h3 class="mb-3 text-uppercase fs-6 text-muted">Chores with no due date</h3>
+
+    {% if no_date_chores %}
+      <ul class="list-group mb-4">
+        {% for c in no_date_chores %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <span class="fw-semibold">{{ c.title }}</span>
+              <span class="text-muted small d-block">
+                Created {{ c.created_at.strftime('%d %b %Y') }}
+              </span>
+
+              {% if c.assigned_to_user_id %}
+                {% if c.assigned_to_user_id == session.get('user_id') %}
+                  <span class="badge bg-secondary mt-1">Assigned to you</span>
+                {% else %}
+                  <span class="badge bg-secondary mt-1">Assigned to another housemate</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-light text-muted border mt-1">Unassigned</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-success">Mark done</button>
+              </form>
+
+              {% if not c.assigned_to_user_id %}
+                <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-primary">Assign to me</button>
+                </form>
+              {% elif c.assigned_to_user_id == session.get('user_id') %}
+                <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-secondary">Remove from me</button>
+                </form>
+              {% else %}
+                <span class="text-muted small align-self-center">
+                  Currently with another housemate
+                </span>
+              {% endif %}
+
+              <a href="{{ url_for('main.db_test_edit', chore_id=c.id) }}"
+                 class="btn btn-sm btn-outline-warning">
+                Edit
+              </a>
+
+              <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted fst-italic">All active chores have a due date.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- COMPLETED CHORES -->
+<div class="row mt-4">
+  <div class="col-12 col-lg-8">
+    <h3 class="mb-3 text-uppercase fs-6 text-muted">Completed chores</h3>
+
+    {% if completed_chores %}
+      <ul class="list-group mb-4">
+        {% for c in completed_chores %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <span class="fw-semibold text-decoration-line-through">{{ c.title }}</span>
+              <span class="text-muted small d-block">
+                Created {{ c.created_at.strftime('%d %b %Y') }}
+              </span>
+
+              {% if c.due_date %}
+                <span class="badge bg-light text-muted border mt-1">
+                  Due {{ c.due_date.strftime('%d %b %Y') }}
+                </span>
+              {% endif %}
+
+              {% if c.assigned_to_user_id %}
+                {% if c.assigned_to_user_id == session.get('user_id') %}
+                  <span class="badge bg-secondary mt-1">Assigned to you</span>
+                {% else %}
+                  <span class="badge bg-secondary mt-1">Assigned to another housemate</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-light text-muted border mt-1">Unassigned</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <!-- Undo completion -->
+              <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-secondary">Mark as active</button>
+              </form>
+
+              {% if not c.assigned_to_user_id %}
+                <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-primary">Assign to me</button>
+                </form>
+              {% elif c.assigned_to_user_id == session.get('user_id') %}
+                <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=c.id) }}">
+                  <button class="btn btn-sm btn-outline-secondary">Remove from me</button>
+                </form>
+              {% else %}
+                <span class="text-muted small align-self-center">
+                  Currently with another housemate
+                </span>
+              {% endif %}
+
+              <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=c.id) }}">
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted fst-italic">No completed chores yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- SUGGESTED CHORES -->
+<div class="row mt-5">
+  <div class="col-12">
+    <h3 class="mb-3 text-uppercase fs-6 text-muted">Suggested chores</h3>
 
     {% set suggestions = [
-      "Clean bathroom surfaces",
+      "Clean bathroom",
       "Vacuum living room",
       "Empty bins",
       "Wipe kitchen counters",
-      "Mop floors",
+      "Clean floors",
       "Wash dishes",
-      "Organize fridge",
+      "Organize fridge/Expired items",
       "Do laundry",
-      "Dust shelves"
+      "Return Cans"
     ] %}
 
-    {% for suggestion in suggestions %}
-<!-- ChatGPT (2025) assisted with Jinja loop and Bootstrap card alignment: https://chatgpt.com/share/690e52e9-fc0c-8007-8140-00c1baa0f87e-->
-    <div class="col">
-      <div class="card shadow-sm h-100 border-0">
-        <div class="card-body text-center">
-          <h6 class="card-title">{{ suggestion }}</h6>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+      {% for suggestion in suggestions %}
+        <div class="col">
+          <div class="card shadow-sm h-100 border-0">
+            <div class="card-body text-center">
+              <h6 class="card-title">{{ suggestion }}</h6>
 
-          <!-- Add Chore Button - referenced from Bootstrap (2025) Buttons documentation:
-               https://getbootstrap.com/docs/5.3/components/buttons/ -->
-          <form method="POST" action="{{ url_for('main.db_test_add') }}">
-            <input type="hidden" name="title" value="{{ suggestion }}">
-            <button class="btn btn-sm btn-primary mt-2">Add Chore</button>
-          </form>
+              <form method="POST" action="{{ url_for('main.db_test_add') }}">
+                <input type="hidden" name="title" value="{{ suggestion }}">
+                <button class="btn btn-sm btn-primary mt-2">Add chore</button>
+              </form>
+            </div>
+          </div>
         </div>
-      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
+
   </div>
 </div>
+
 {% endblock %}

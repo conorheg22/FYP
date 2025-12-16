@@ -1,23 +1,116 @@
-{% extends "base.html" %}  <!-- Uses base.html layout -->
-
+{% extends "base.html" %}
 {% block content %}
-  <!-- Welcome card that appears on the homepage -->
-    <!-- Card structure referenced from Bootstrap (2025) Cards documentation: https://getbootstrap.com/docs/5.3/components/card/ -->
-  <div class="card homi p-4 p-md-5">
-    <div class="row g-4 align-items-center">
-      <!-- Left side: logo -->
-      <div class="col-md-3 text-center">
-        <img class="logo-large" src="{{ url_for('static', filename='img/homi-logo.png') }}" alt="HOMI logo">
-      </div>
-      <!-- Right side: intro text and button -->
-      <div class="col-md-9">
-        <h1 class="h3 mb-2">Welcome to HOMI</h1>
-        <p class="text-muted mb-4">A simple app to coordinate chores and keep shared living smooth.</p>
 
-        <!-- Button style referenced from Bootstrap (2025) Buttons documentation:
-             https://getbootstrap.com/docs/5.3/components/buttons/ -->
-        <a class="btn btn-primary btn-lg" href="{{ url_for('main.db_test_list') }}">Open Chore Tracker</a>
+<div class="container py-5">
+
+  <!-- HERO -->
+  <div class="card homi p-4 p-md-5 mb-4 homi-accent">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7">
+        <h1 class="display-5 mb-3">
+          Smarter shared living.<br class="d-none d-md-block">
+          Less stress, more fairness.
+        </h1>
+        <p class="lead mb-4">
+          HOmi helps housemates manage chores, inventory, expenses, and motivation — all in one clean dashboard.
+        </p>
+
+        <div class="d-flex flex-wrap gap-2">
+          {% if session.get("user_id") %}
+            <a href="{{ url_for('main.db_test_list') }}" class="btn btn-primary">
+              Go to Dashboard
+            </a>
+            <a href="{{ url_for('main.logout') }}" class="btn btn-outline-primary">
+              Log out
+            </a>
+          {% else %}
+            <a href="{{ url_for('main.register') }}" class="btn btn-primary">
+              Get Started
+            </a>
+            <a href="{{ url_for('main.login') }}" class="btn btn-outline-primary">
+              Log In
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card homi p-4">
+          <h3 class="h5 mb-3">What you can do</h3>
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2">✅ Fair chore distribution + tracking</li>
+            <li class="mb-2">📦 Inventory + shopping reminders</li>
+            <li class="mb-2">💸 Split expenses transparently</li>
+            <li class="mb-0">🏆 Points + leaderboard motivation</li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- FEATURE GRID -->
+  <div class="row g-4">
+    <div class="col-md-6 col-lg-3">
+      <div class="card homi p-4 h-100">
+        <div class="badge badge-upcoming mb-3">Chores</div>
+        <h3 class="h5">Stay on top of tasks</h3>
+        <p class="mb-0">Assign chores, set due dates, and track what’s done.</p>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+      <div class="card homi p-4 h-100">
+        <div class="badge badge-upcoming mb-3">Inventory</div>
+        <h3 class="h5">Reduce waste</h3>
+        <p class="mb-0">Know what your house has before buying duplicates.</p>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+      <div class="card homi p-4 h-100">
+        <div class="badge badge-upcoming mb-3">Expenses</div>
+        <h3 class="h5">Split fairly</h3>
+        <p class="mb-0">Track shared purchases and avoid awkward money convos.</p>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+      <div class="card homi p-4 h-100">
+        <div class="badge badge-priority mb-3">Gamification</div>
+        <h3 class="h5">Stay motivated</h3>
+        <p class="mb-0">Earn points for contributions and climb the leaderboard.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="card homi p-4 p-md-5 mt-4">
+    <h2 class="h3 mb-3">How it works</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card homi p-4 h-100">
+          <div class="badge badge-upcoming mb-3">Step 1</div>
+          <h3 class="h5">Create or join a household</h3>
+          <p class="mb-0">Use an invite code so everyone shares the same space.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card homi p-4 h-100">
+          <div class="badge badge-upcoming mb-3">Step 2</div>
+          <h3 class="h5">Manage chores + contributions</h3>
+          <p class="mb-0">Set due dates, assign tasks, track expenses & inventory.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card homi p-4 h-100">
+          <div class="badge badge-upcoming mb-3">Step 3</div>
+          <h3 class="h5">Live better together</h3>
+          <p class="mb-0">Less conflict. Less waste. More fairness.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 {% endblock %}

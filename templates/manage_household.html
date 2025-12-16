@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Household · HOMI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!--
+    PAGE HEADER
+    -----------
+    Introduces the management screen.
+    This page lets the user:
+      • Update household name + address
+      • Copy the invite code
+      • Leave the household
+  -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="h3 mb-1">Manage Household</h1>
+      <p class="text-muted mb-0">
+        Edit your household details or leave the group to manage your participation and privacy.
+      </p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!--
+      HOUSEHOLD DETAILS CARD
+      -----------------------
+      Allows editing the household name, optional address,
+      and copying the invite code used for joining.
+    -->
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm border-0">
+
+        <!-- Card Header -->
+        <div class="card-header bg-white border-0">
+          <h2 class="h5 mb-0">Household details</h2>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+
+          <!--
+            Update household form
+            - POSTs to main.update_household
+            - Requires name, optional address
+          -->
+          <form method="POST" action="{{ url_for('main.update_household') }}">
+
+            <!-- Household Name Field -->
+            <div class="mb-3">
+              <label for="name" class="form-label">Household name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="name"
+                name="name"
+                value="{{ household.name }}"
+                required
+              >
+              <div class="form-text">
+                This is how your home will appear to housemates.
+              </div>
+            </div>
+
+            <!-- Address Field -->
+            <div class="mb-3">
+              <label for="address" class="form-label">Address (optional)</label>
+              <input
+                type="text"
+                class="form-control"
+                id="address"
+                name="address"
+                value="{{ household.address or '' }}"
+                placeholder="e.g. 12 College View, Cork"
+              >
+              <div class="form-text">
+                Used only inside HOMI to help identify the right household.
+              </div>
+            </div>
+
+            <!--
+              Invite Code Section
+              - Displays readonly invite code
+              - Includes Copy button using navigator.clipboard API
+            -->
+            <div class="mb-3">
+              <label class="form-label">Invite code</label>
+              <div class="input-group">
+
+                <!-- Read-only invite code -->
+                <input
+                  type="text"
+                  class="form-control"
+                  value="{{ household.invite_code }}"
+                  readonly
+                >
+
+                <!-- Copy button -->
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  onclick="navigator.clipboard.writeText('{{ household.invite_code }}')"
+                >
+                  Copy
+                </button>
+              </div>
+
+              <div class="form-text">
+                Share this code with housemates so they can join your home.
+              </div>
+            </div>
+
+            <!-- Save changes + Created date -->
+            <div class="d-flex justify-content-between align-items-center">
+
+              <!-- Show creation date if available -->
+              <small class="text-muted">
+                Created {{ household.created_at.strftime('%d %b %Y') if household.created_at else 'N/A' }}
+              </small>
+
+              <!-- Submit button -->
+              <button type="submit" class="btn btn-primary">
+                Save changes
+              </button>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    <!--
+      LEAVE HOUSEHOLD CARD
+      ---------------------
+      Allows the user to leave the household.
+      This removes active_household_id from the session.
+    -->
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm border-0 h-100">
+
+        <!-- Card Header -->
+        <div class="card-header bg-white border-0">
+          <h2 class="h5 mb-0">Participation &amp; privacy</h2>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body d-flex flex-column justify-content-between">
+
+          <!-- Explanation text -->
+          <div>
+            <p class="mb-2">
+              If you no longer want to be associated with this household,
+              you can leave it at any time.
+            </p>
+
+            <p class="text-muted small mb-3">
+              Leaving only affects your session on this device.
+              You can rejoin using the invite code.
+            </p>
+          </div>
+
+          <!-- Leave Household Button -->
+          <form
+            method="POST"
+            action="{{ url_for('main.leave_household') }}"
+            onsubmit="return confirm('Are you sure you want to leave this household?');"
+          >
+            <button type="submit" class="btn btn-outline-danger w-100">
+              Leave household
+            </button>
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

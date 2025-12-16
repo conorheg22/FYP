@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Register · HOMI{% endblock %}
+
+{% block content %}
+
+<!--
+  Registration Page
+  -----------------
+  Allows new users to create an account for HOMI.
+  The form posts to main.register, which:
+    • Validates input
+    • Checks if the email already exists
+    • Hashes the password
+    • Creates a new User record in the database
+-->
+
+<div class="container py-4">
+  <div class="row justify-content-center">
+
+    <!--
+      Centered registration card
+      - Uses Bootstrap card for simple, modern layout
+      - Width scales nicely on all screen sizes (mobile → desktop)
+    -->
+    <div class="col-12 col-md-6 col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+          <!-- Page heading -->
+          <h1 class="h4 mb-3 text-center">Create an account</h1>
+
+          <!-- Small descriptive subtitle -->
+          <p class="text-muted small text-center mb-4">
+            Basic account setup so HOMI can remember you.
+          </p>
+
+          <!--
+            REGISTRATION FORM
+            -----------------
+            POSTs to main.register with:
+              - name
+              - email
+              - password
+              - confirm_password
+            All validation happens server-side in main.py.
+          -->
+          <form method="POST" action="{{ url_for('main.register') }}">
+
+            <!-- Name Field -->
+            <div class="mb-3">
+              <label for="name" class="form-label">Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="name"
+                name="name"
+                required
+              >
+            </div>
+
+            <!-- Email Field -->
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              >
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              >
+            </div>
+
+            <!-- Confirm Password Field -->
+            <div class="mb-3">
+              <label for="confirm_password" class="form-label">Confirm password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="confirm_password"
+                name="confirm_password"
+                required
+              >
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary w-100">
+              Sign up
+            </button>
+          </form>
+
+          <!--
+            Login link for users who already have an account
+          -->
+          <p class="text-center mt-3 mb-0 small">
+            Already have an account?
+            <a href="{{ url_for('main.login') }}">Log in</a>
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

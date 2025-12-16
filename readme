@@ -14,6 +14,8 @@ Conor Hegarty - IS3312 Project Phase 1
 
 Standard SQLAlchemy models structure; adapted from Flask-SQLAlchemy documentation (Pallets, 2024)
 
+Chatgpt help with login routing and logic: https://chatgpt.com/share/6920e35e-a390-8007-9aeb-d9005fde7ba8
+
 -- Sources Harvard Style --
 Bootstrap (2025) Buttons – Bootstrap v5.3 Documentation. Available at: https://getbootstrap.com/docs/5.3/components/buttons/
  (Accessed: 1 November 2025).

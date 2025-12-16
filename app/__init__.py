@@ -1,39 +1,75 @@
-from flask import Flask         # Imports Flask framework
-from flask_sqlalchemy import SQLAlchemy  # Adds database support
-from flask_migrate import Migrate        # Adds database migration support
-from dotenv import load_dotenv           # Loads variables from .env file
-import os                       # Used for file paths
+"""
+App factory and core configuration for the Flask application.
 
-db = SQLAlchemy()               # Creates a database object (not linked yet)
-migrate = Migrate()             # Creates migration tool object
+- Creates the Flask app instance
+- Loads environment variables from .env
+- Configures the SQLite database and migrations
+- Registers the main blueprint that holds all routes
+"""
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from dotenv import load_dotenv
+import os
+
+# Global extension instances (not bound to any app yet)
+db = SQLAlchemy()
+migrate = Migrate()
+
 
 def create_app():
-    load_dotenv()               # Loads .env file into environment variables
+    """Application factory function.
 
-    # Creates the Flask app and points it to the template and static folders
+    - Called by Flask to create an app instance
+    - Wires up config, database, migrations and blueprints
+    """
+    # Load .env explicitly from project root (one level above /app)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    load_dotenv(os.path.join(project_root, ".env"))
+
+    # Create the Flask app and tell it where templates/static files live
     app = Flask(
         __name__,
-        instance_relative_config=True,
+        instance_relative_config=True,  # Puts instance/ folder outside package
         template_folder="../templates",
         static_folder="../static",
     )
 
-    os.makedirs(app.instance_path, exist_ok=True)  # Makes sure 'instance' folder exists
+    # Ensure the 'instance' folder exists (used for app.db etc.)
+    os.makedirs(app.instance_path, exist_ok=True)
 
-    # Builds the database path inside 'instance'
-    default_sqlite = "sqlite:///" + os.path.join(app.instance_path, "app.db")
+    # ---- Core configuration values ----
 
-    # Basic configuration settings
-    app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-key")  # Security key
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", default_sqlite)  # DB path
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # Turns off unused feature
+    # Sessions require a SECRET_KEY. Support both SECRET_KEY and FLASK_SECRET_KEY from .env
+    app.config["SECRET_KEY"] = (
+        os.getenv("SECRET_KEY")
+        or os.getenv("FLASK_SECRET_KEY")
+        or "dev-key"
+    )
 
-    db.init_app(app)             # Connects database to app
-    migrate.init_app(app, db)    # Connects migration tool to app
+    # Build a default SQLite URI for instance/app.db (Windows-safe)
+    db_path = os.path.join(app.instance_path, "app.db")
+    default_sqlite = "sqlite:///" + db_path.replace("\\", "/")
 
-    from . import models         # Imports models so tables are known
+    # Use DATABASE_URL if set; otherwise use the instance/app.db default
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", default_sqlite)
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    from .main import main_bp    # Imports blueprint (routes)
-    app.register_blueprint(main_bp)  # Adds blueprint to app
+    # (Optional) Debug prints — remove once everything is working
+    print("Instance path:", app.instance_path)
+    print("DB URI:", app.config["SQLALCHEMY_DATABASE_URI"])
+    print("SECRET_KEY set?", bool(app.config.get("SECRET_KEY")))
 
-    return app                   # Returns the ready-to-use app
+    # Attach extensions to this specific app instance
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    # Import models so Alembic / SQLAlchemy know about them
+    from . import models  # noqa: F401
+
+    # Register the main blueprint that contains all routes
+    from .main import main_bp
+    app.register_blueprint(main_bp)
+
+    return app

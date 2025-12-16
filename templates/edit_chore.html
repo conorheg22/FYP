@@ -1,18 +1,73 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card homi p-4">
-  <h1 class="mb-4">Edit Chore</h1>
 
-  <form method="POST">
-    <div class="mb-3">
-      <label for="title" class="form-label">Chore Title</label>
-      <input type="text" class="form-control" id="title" name="title" value="{{ chore.title }}" required>
-    </div>
+<!--
+  Edit Chore Page
+  ----------------
+  This page is loaded when the user clicks "Edit" on a specific chore.
+  It allows the user to:
+    - Update the chore title
+    - Add or change an optional due date
+  All values are pre-filled from the current chore object passed from main.py
+-->
 
-    <!-- Save and Cancel Buttons referenced from Bootstrap (2025) Buttons documentation:
-         https://getbootstrap.com/docs/5.3/components/buttons/ -->
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-    <a href="{{ url_for('main.db_test_list') }}" class="btn btn-secondary">Cancel</a>
-  </form>
+<div class="row">
+  <div class="col-12 col-md-6">
+
+    <!-- Page heading -->
+    <h1 class="h4 mb-3">Edit chore</h1>
+
+    <!--
+      Form to update the chore.
+      Uses POST to submit changes back to main.db_test_edit (same URL).
+    -->
+    <form method="POST">
+
+      <!--
+        Title field
+        - Required input
+        - Pre-populated with the chore's current title
+      -->
+      <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input
+          type="text"
+          name="title"
+          class="form-control"
+          value="{{ chore.title }}"
+          required
+        >
+      </div>
+
+      <!--
+        Due date field (optional)
+        - Uses HTML <input type="date">
+        - value is pre-filled only if chore has a due_date
+        - strftime ensures proper format: YYYY-MM-DD (HTML date format)
+      -->
+      <div class="mb-3">
+        <label class="form-label">Due date (optional)</label>
+        <input
+          type="date"
+          name="due_date"
+          class="form-control"
+          value="{{ chore.due_date.strftime('%Y-%m-%d') if chore.due_date }}"
+        >
+      </div>
+
+      <!--
+        FORM BUTTONS
+        - Save changes: submits form
+        - Cancel: returns user to main chores list without modifying data
+      -->
+      <button type="submit" class="btn btn-primary">Save changes</button>
+
+      <a href="{{ url_for('main.db_test_list') }}" class="btn btn-outline-secondary ms-2">
+        Cancel
+      </a>
+
+    </form>
+  </div>
 </div>
+
 {% endblock %}

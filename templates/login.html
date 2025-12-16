@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Login · HOMI{% endblock %}
+
+{% block content %}
+
+<!--
+  Login Page
+  ----------
+  This page allows users to log into HOMI using their email and password.
+  It submits a POST request to main.login, where authentication is handled.
+-->
+
+<div class="container py-4">
+  <div class="row justify-content-center">
+
+    <!--
+      Centered login card
+      - Uses Bootstrap card for a clean, modern layout
+      - Responsive: scales nicely across mobile, tablet, and desktop
+    -->
+    <div class="col-12 col-md-6 col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+          <!-- Page heading -->
+          <h1 class="h4 mb-3 text-center">Log in to HOMI</h1>
+
+          <!-- Short description under the title -->
+          <p class="text-muted small text-center mb-4">
+            Enter your details to access your household.
+          </p>
+
+          <!--
+            LOGIN FORM
+            ----------
+            - Method: POST
+            - Action: main.login (handled in main.py)
+            - Validates the user's email + password
+          -->
+          <form method="POST" action="{{ url_for('main.login') }}">
+
+            <!-- Email field -->
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              >
+            </div>
+
+            <!-- Password field -->
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              >
+            </div>
+
+            <!-- Submit button (full width) -->
+            <button type="submit" class="btn btn-primary w-100">
+              Log in
+            </button>
+          </form>
+
+          <!--
+            Link to the registration page
+            - Encourages new users to create an account
+          -->
+          <p class="text-center mt-3 mb-0 small">
+            No account yet?
+            <a href="{{ url_for('main.register') }}">Create one</a>
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

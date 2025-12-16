@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>HOmi – Smarter Shared Living</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="nav-left">
+      <div class="logo">H</div>
+      <span class="brand">HOmi</span>
+    </div>
+    <div class="nav-right">
+      <a href="/login" class="nav-link">Log in</a>
+      <a href="/register" class="btn-primary">Get Started</a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Smarter Shared Living, <br>Less Stress.</h1>
+      <p>
+        HOmi helps students living together manage chores, expenses,
+        inventory, and responsibilities — fairly and effortlessly.
+      </p>
+      <div class="hero-actions">
+        <a href="/register" class="btn-primary">Create an Account</a>
+        <a href="/login" class="btn-secondary">Log In</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <h2>Everything Your Household Needs</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>🧹 Chore Management</h3>
+        <p>Automatically assign and track household chores fairly.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>📦 Inventory Tracking</h3>
+        <p>Know what your house has and avoid waste or duplicate buying.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>💸 Expense Splitting</h3>
+        <p>Split bills and shared purchases transparently and fairly.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>🏆 Gamification</h3>
+        <p>Earn points, climb the leaderboard, and stay motivated.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <h2>How It Works</h2>
+
+    <div class="steps">
+      <div class="step">
+        <span>1</span>
+        <p>Create or join your household</p>
+      </div>
+      <div class="step">
+        <span>2</span>
+        <p>Assign chores, track expenses & inventory</p>
+      </div>
+      <div class="step">
+        <span>3</span>
+        <p>Stay organised and avoid conflict</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Ready to simplify shared living?</h2>
+    <a href="/register" class="btn-primary large">Get Started with HOmi</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>© 2025 HOmi — Final Year Project</p>
+  </footer>
+
+</body>
+</html>

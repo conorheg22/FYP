@@ -1,16 +1,50 @@
 {% extends "base.html" %}
+
 {% block content %}
-  <div class="bg-white p-4 rounded shadow-sm" style="max-width:600px">
-    <h1 class="h4 mb-3">✏️ Edit Chore</h1>
-    <form method="post">
-      <div class="mb-3">
-        <label class="form-label">Title</label>
-        <input name="title" class="form-control" value="{{ chore.title }}" required />
-      </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Save</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('main.db_test_list') }}">Cancel</a>
-      </div>
-    </form>
-  </div>
+
+<!--
+  Edit Chore Page
+  - This page is rendered when the user clicks "Edit" on a specific chore.
+  - It allows updating the chore title (and due date if added later).
+  - The form posts back to the same route (main.db_test_edit).
+-->
+
+<div class="bg-white p-4 rounded shadow-sm" style="max-width:600px">
+
+  <!-- Page heading with small icon -->
+  <h1 class="h4 mb-3">✏️ Edit Chore</h1>
+
+  <!--
+    Edit form:
+    - Uses method="POST" because the route handles both GET (show form) and POST (save)
+    - Pre-fills current title using chore.title
+  -->
+  <form method="post">
+
+    <!-- Chore title input field -->
+    <div class="mb-3">
+      <label class="form-label">Title</label>
+      <input
+        name="title"
+        class="form-control"
+        value="{{ chore.title }}"
+        required
+      />
+    </div>
+
+    <!--
+      Buttons:
+      - Save: submits the form and updates the chore in the database
+      - Cancel: returns user to the main chore list page
+    -->
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.db_test_list') }}">
+        Cancel
+      </a>
+    </div>
+
+  </form>
+</div>
+
 {% endblock %}
