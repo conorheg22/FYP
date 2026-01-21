@@ -1,10 +1,11 @@
-"""Main application routes and business logic.
+"""
+Main application routes and business logic.
 
 Contains:
 - Authentication (register, login, logout)
 - Household creation, joining, and management
-- Chore CRUD operations (add, edit, delete, mark done)
-- Chore assignment and due-date handling
+- Chore CRUD operations (db-test routes)
+- Expense tracking (equal split + custom split + summary)
 """
 
 from flask import (
@@ -17,27 +18,29 @@ from flask import (
     flash,
     session,
 )
-from .models import Chore, Household, User
+from .models import (
+    Chore,
+    Household,
+    User,
+    Expense,
+    ExpenseShare,
+)
 from . import db
-import random, string
+import random
+import string
 from functools import wraps
-from datetime import date, datetime  # Used for due date and filtering
+from datetime import date, datetime
 
-# ---------------------------------------------------------
-# Blueprint Setup
-# ---------------------------------------------------------
-# This blueprint groups all routes under a single logical module ("main")
-main_bp = Blueprint("main", __name__)   # Used as url_for("main.some_route")
+main_bp = Blueprint("main", __name__)
 
 
 # ---------------------------------------------------------
-# Login Required Decorator
+# Auth helpers
 # ---------------------------------------------------------
 def login_required(f):
-    """Decorator to protect routes so only logged-in users can access them."""
+    """Protect routes so only logged-in users can access them."""
     @wraps(f)
     def wrapper(*args, **kwargs):
-        # If there's no user_id in the session, user is not logged in
         if not session.get("user_id"):
             flash("Please log in to continue.", "warning")
             return redirect(url_for("main.login"))
@@ -45,96 +48,212 @@ def login_required(f):
     return wrapper
 
 
-# ---------------------------------------------------------
-# Helper: get the currently active household from the session
-# ---------------------------------------------------------
 def get_active_household():
-    """Return the active Household object stored in the session, or None."""
+    """Return the active Household object stored in session, or None."""
     household_id = session.get("active_household_id")
     if not household_id:
         return None
     return Household.query.get(household_id)
 
 
-# ---------------------------------------------------------
-# Household Required Decorator
-# ---------------------------------------------------------
 def household_required(f):
-    """Decorator to ensure the user has selected or joined a household."""
+    """Ensure user has selected/joined a household."""
     @wraps(f)
     def wrapper(*args, **kwargs):
-        household = get_active_household()
-        if household is None:
+        if not get_active_household():
             flash("Please create or join a household first.", "warning")
             return redirect(url_for("main.join_household"))
         return f(*args, **kwargs)
     return wrapper
 
 
+def get_household_members(household_id: int):
+    """Return users who belong to this household."""
+    return (
+        User.query
+        .filter_by(household_id=household_id)
+        .order_by(User.name.asc())
+        .all()
+    )
+
+
 # ---------------------------------------------------------
-# Home page (Landing page)
+# Home
 # ---------------------------------------------------------
 @main_bp.route("/")
 def index():
-    """Landing page of the application."""
+    """Landing page."""
     return render_template("index.html", user_name=session.get("user_name"))
 
 
 # ---------------------------------------------------------
-# Chores (db-test) — household-scoped with due-date logic
+# Household
+# ---------------------------------------------------------
+@main_bp.route("/create_household", methods=["GET", "POST"])
+@login_required
+def create_household():
+    """Create a new household and set it active."""
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        address = request.form.get("address", "").strip()
+
+        if not name:
+            flash("Household name is required.", "danger")
+            return redirect(url_for("main.create_household"))
+
+        invite_code = "".join(
+            random.choices(string.ascii_uppercase + string.digits, k=6)
+        )
+
+        household = Household(
+            name=name,
+            address=address or None,
+            invite_code=invite_code,
+        )
+        db.session.add(household)
+        db.session.commit()
+
+        # Session + DB persistence for this user's active household
+        session["active_household_id"] = household.id
+
+        user = User.query.get(session.get("user_id"))
+        if user:
+            # Membership + restore-on-login
+            user.household_id = household.id
+            user.active_household_id = household.id
+            db.session.commit()
+
+        flash("Household created successfully.", "success")
+        return redirect(url_for("main.expenses"))
+
+    return render_template("create_household.html")
+
+
+@main_bp.route("/join_household", methods=["GET", "POST"])
+@login_required
+def join_household():
+    """Join an existing household using invite code."""
+    if request.method == "POST":
+        code = request.form.get("invite_code", "").strip()
+        household = Household.query.filter_by(invite_code=code).first()
+
+        if household:
+            # Session + DB persistence for this user's active household
+            session["active_household_id"] = household.id
+            user = User.query.get(session.get("user_id"))
+            if user:
+                # Membership + restore-on-login
+                user.household_id = household.id
+                user.active_household_id = household.id
+                db.session.commit()
+
+            flash(f"Joined household: {household.name}", "success")
+            return redirect(url_for("main.expenses"))
+
+        flash("Invalid invite code.", "danger")
+
+    return render_template("join_household.html")
+
+
+@main_bp.route("/household/manage")
+@login_required
+def manage_household():
+    """Manage the active household."""
+    household = get_active_household()
+    if not household:
+        flash("No active household selected.", "warning")
+        return redirect(url_for("main.join_household"))
+
+    return render_template("manage_household.html", household=household)
+
+
+@main_bp.route("/household/update", methods=["POST"])
+@login_required
+def update_household():
+    """Update the active household details (name/address)."""
+    household = get_active_household()
+    if not household:
+        flash("No active household selected.", "warning")
+        return redirect(url_for("main.join_household"))
+
+    name = (request.form.get("name") or "").strip()
+    address = (request.form.get("address") or "").strip()
+
+    if not name:
+        flash("Household name is required.", "danger")
+        return redirect(url_for("main.manage_household"))
+
+    household.name = name
+    household.address = address or None
+    db.session.commit()
+
+    flash("Household updated.", "success")
+    return redirect(url_for("main.manage_household"))
+
+
+@main_bp.route("/household/leave", methods=["POST"])
+@login_required
+def leave_household():
+    """Leave the currently active household."""
+    # Clear session selection
+    session.pop("active_household_id", None)
+
+    # Clear membership + persisted selection so it doesn't restore on next login
+    user = User.query.get(session.get("user_id"))
+    if user:
+        user.active_household_id = None
+        user.household_id = None
+        db.session.commit()
+
+    flash("You have left the household.", "info")
+    return redirect(url_for("main.index"))
+
+
+# ---------------------------------------------------------
+# Chores (db-test)
 # ---------------------------------------------------------
 @main_bp.route("/db-test")
 @login_required
 @household_required
 def db_test_list():
-    """Main chores page.
-
-    - Fetches all chores for the active household
-    - Splits them into overdue, upcoming, no-date and completed
-    - Renders them in the db_test.html template
-    """
+    """Chores page (existing Iteration 2 feature)."""
     household = get_active_household()
     today = date.today()
 
-    # Base query for chores in this household
     base_query = Chore.query.filter_by(household_id=household.id)
 
-    # Active + overdue: due_date is set and is before today
     overdue_chores = (
         base_query
         .filter(
-            Chore.completed == False,  # noqa: E712 (SQLAlchemy boolean pattern)
-            Chore.due_date != None,
+            Chore.completed == False,  # noqa: E712
+            Chore.due_date != None,    # noqa: E711
             Chore.due_date < today,
         )
         .order_by(Chore.due_date.asc())
         .all()
     )
 
-    # Active + upcoming: due_date today or in the future
     upcoming_chores = (
         base_query
         .filter(
-            Chore.completed == False,
-            Chore.due_date != None,
+            Chore.completed == False,  # noqa: E712
+            Chore.due_date != None,    # noqa: E711
             Chore.due_date >= today,
         )
         .order_by(Chore.due_date.asc())
         .all()
     )
 
-    # Active + no due date set
     no_date_chores = (
         base_query
         .filter(
-            Chore.completed == False,
-            Chore.due_date == None,
+            Chore.completed == False,  # noqa: E712
+            Chore.due_date == None,    # noqa: E711
         )
         .order_by(Chore.created_at.desc())
         .all()
     )
 
-    # Completed chores, regardless of date
     completed_chores = (
         base_query
         .filter(Chore.completed == True)  # noqa: E712
@@ -142,7 +261,33 @@ def db_test_list():
         .all()
     )
 
-    # Render all four lists into the template
+    # --- Fairness distribution (active chores per user + unassigned) ---
+    active_chores = overdue_chores + upcoming_chores + no_date_chores
+
+    # FIX: members are ONLY users in this household
+    users = get_household_members(household.id)
+    users_by_id = {u.id: u for u in users}
+
+    active_by_user = {u.id: 0 for u in users}
+    unassigned_count = 0
+
+    for c in active_chores:
+        if c.assigned_to_user_id:
+            if c.assigned_to_user_id in active_by_user:
+                active_by_user[c.assigned_to_user_id] += 1
+        else:
+            unassigned_count += 1
+
+    distribution = []
+    for u in users:
+        distribution.append({
+            "name": u.name,
+            "count": active_by_user.get(u.id, 0),
+            "is_me": (u.id == session.get("user_id")),
+        })
+
+    max_count = max([d["count"] for d in distribution], default=0)
+
     return render_template(
         "db_test.html",
         household=household,
@@ -150,6 +295,14 @@ def db_test_list():
         upcoming_chores=upcoming_chores,
         no_date_chores=no_date_chores,
         completed_chores=completed_chores,
+
+        # fairness
+        distribution=distribution,
+        unassigned_count=unassigned_count,
+        max_count=max_count,
+
+        # for showing owner names in the chore cards
+        users_by_id=users_by_id,
     )
 
 
@@ -157,10 +310,8 @@ def db_test_list():
 @login_required
 @household_required
 def db_test_add():
-    """Handle adding a new chore from the db_test form."""
+    """Add a new chore."""
     household = get_active_household()
-
-    # Read and clean form values
     title = (request.form.get("title") or "").strip()
     due_str = (request.form.get("due_date") or "").strip()
 
@@ -168,16 +319,13 @@ def db_test_add():
         flash("Please enter a chore name.", "warning")
         return redirect(url_for("main.db_test_list"))
 
-    # Convert date string from HTML input (YYYY-MM-DD) to Python date
     due_date = None
     if due_str:
         try:
             due_date = datetime.strptime(due_str, "%Y-%m-%d").date()
         except ValueError:
-            # If parsing fails, skip setting a due date
-            pass
+            due_date = None
 
-    # Create a new Chore record linked to this household
     c = Chore(
         title=title,
         household_id=household.id,
@@ -194,11 +342,10 @@ def db_test_add():
 @login_required
 @household_required
 def db_test_toggle(chore_id: int):
-    """Toggle a chore between completed and not completed."""
+    """Toggle a chore completed/uncompleted."""
     household = get_active_household()
     chore = Chore.query.get_or_404(chore_id)
 
-    # Security check: only allow toggling chores in the active household
     if chore.household_id != household.id:
         abort(404)
 
@@ -212,11 +359,10 @@ def db_test_toggle(chore_id: int):
 @login_required
 @household_required
 def db_test_delete(chore_id: int):
-    """Delete an existing chore."""
+    """Delete a chore."""
     household = get_active_household()
     chore = Chore.query.get_or_404(chore_id)
 
-    # Only delete if chore belongs to this household
     if chore.household_id != household.id:
         abort(404)
 
@@ -231,11 +377,10 @@ def db_test_delete(chore_id: int):
 @login_required
 @household_required
 def db_test_edit(chore_id: int):
-    """Edit a chore's title and/or due date."""
+    """Edit a chore (title + due date)."""
     household = get_active_household()
     chore = Chore.query.get_or_404(chore_id)
 
-    # Prevent editing chores from another household
     if chore.household_id != household.id:
         abort(404)
 
@@ -243,16 +388,13 @@ def db_test_edit(chore_id: int):
         title = (request.form.get("title") or "").strip()
         due_str = (request.form.get("due_date") or "").strip()
 
-        # Only update title if non-empty
         if title:
             chore.title = title
 
-        # Update due date (or clear it if nothing given)
         if due_str:
             try:
                 chore.due_date = datetime.strptime(due_str, "%Y-%m-%d").date()
             except ValueError:
-                # Invalid date entered, ignore change
                 pass
         else:
             chore.due_date = None
@@ -261,25 +403,20 @@ def db_test_edit(chore_id: int):
         flash("Chore updated.", "success")
         return redirect(url_for("main.db_test_list"))
 
-    # GET request: show edit form
     return render_template("edit_chore.html", chore=chore, household=household)
 
 
-# ---------------------------------------------------------
-# Chore assignment (assign to specific users)
-# ---------------------------------------------------------
 @main_bp.route("/db-test/<int:chore_id>/assign", methods=["POST"])
 @login_required
 @household_required
 def db_test_assign(chore_id: int):
-    """Assign a chore to the currently logged-in user."""
+    """Assign a chore to the current user."""
     household = get_active_household()
     chore = Chore.query.get_or_404(chore_id)
 
     if chore.household_id != household.id:
         abort(404)
 
-    # Link the chore to the current user's ID
     chore.assigned_to_user_id = session["user_id"]
     db.session.commit()
 
@@ -291,7 +428,7 @@ def db_test_assign(chore_id: int):
 @login_required
 @household_required
 def db_test_unassign(chore_id: int):
-    """Remove any user assignment from a chore."""
+    """Clear chore assignment."""
     household = get_active_household()
     chore = Chore.query.get_or_404(chore_id)
 
@@ -305,204 +442,310 @@ def db_test_unassign(chore_id: int):
     return redirect(url_for("main.db_test_list"))
 
 
-# ---------------------------------------------------------
-# Household Creation & Joining
-# ---------------------------------------------------------
-@main_bp.route("/create_household", methods=["GET", "POST"])
+@main_bp.route("/db-test/auto-assign", methods=["POST"])
 @login_required
-def create_household():
-    """Create a new household and generate an invite code."""
-    if request.method == "POST":
-        name = request.form.get("name")
-        address = request.form.get("address")
-
-        if not name:
-            flash("Please enter a household name.", "warning")
-            return redirect(url_for("main.create_household"))
-
-        # Generate a random 6-character invite code
-        invite_code = "".join(
-            random.choices(string.ascii_uppercase + string.digits, k=6)
-        )
-
-        # Create the Household record
-        new_house = Household(
-            name=name,
-            address=address,
-            invite_code=invite_code,
-        )
-        db.session.add(new_house)
-        db.session.commit()
-
-        # Set this as the active household in the session
-        session["active_household_id"] = new_house.id
-
-        return render_template("household_created.html", household=new_house)
-
-    # GET request: show the create household form
-    return render_template("create_household.html")
-
-
-@main_bp.route("/join_household", methods=["GET", "POST"])
-@login_required
-def join_household():
-    """Allow a user to join an existing household by invite code."""
-    joined_household = None
-
-    if request.method == "POST":
-        code = request.form.get("invite_code")
-        household = Household.query.filter_by(invite_code=code).first()
-
-        if household:
-            # Store the joined household in the session
-            joined_household = household
-            session["active_household_id"] = household.id
-            flash(f"Successfully joined household: {household.name}", "success")
-        else:
-            flash("Invalid invite code. Please try again.", "danger")
-
-    return render_template("join_household.html", household=joined_household)
-
-
-# ---------------------------------------------------------
-# Manage Household page (Edit / Leave)
-# ---------------------------------------------------------
-@main_bp.route("/household/manage")
-@login_required
-def manage_household():
-    """Display the manage-household page for the active household."""
+@household_required
+def db_test_auto_assign():
+    """Auto-assign UNASSIGNED active chores fairly (least loaded)."""
     household = get_active_household()
-    if household is None:
-        flash(
-            "No active household selected. Please create or join a household first.",
-            "warning",
-        )
-        return redirect(url_for("main.index"))
 
-    return render_template("manage_household.html", household=household)
-
-
-@main_bp.route("/household/update", methods=["POST"])
-@login_required
-def update_household():
-    """Update the name and/or address of the active household."""
-    household = get_active_household()
-    if household is None:
-        flash("No active household to update.", "warning")
-        return redirect(url_for("main.index"))
-
-    new_name = request.form.get("name", "").strip()
-    new_address = request.form.get("address", "").strip()
-
-    if not new_name:
-        flash("Household name cannot be empty.", "danger")
-        return redirect(url_for("main.manage_household"))
-
-    household.name = new_name
-    household.address = new_address or None
-    db.session.commit()
-
-    flash("Household details updated successfully.", "success")
-    return redirect(url_for("main.manage_household"))
-
-
-@main_bp.route("/household/leave", methods=["POST"])
-@login_required
-def leave_household():
-    """Remove the active household from the session (user leaves)."""
-    household = get_active_household()
-    if household is None:
-        flash("You are not currently in a household.", "warning")
-        return redirect(url_for("main.index"))
-
-    # Clear household from session
-    session.pop("active_household_id", None)
-
-    flash(
-        "You have left the household. You can create or join another one anytime.",
-        "info",
+    active_chores = (
+        Chore.query
+        .filter_by(household_id=household.id)
+        .filter(Chore.completed == False)  # noqa: E712
+        .all()
     )
-    return redirect(url_for("main.index"))
+
+    # FIX: only household members
+    users = (
+        User.query
+        .filter_by(household_id=household.id)
+        .order_by(User.id.asc())
+        .all()
+    )
+    if not users:
+        flash("No users available to assign chores.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    load = {u.id: 0 for u in users}
+    for c in active_chores:
+        if c.assigned_to_user_id in load:
+            load[c.assigned_to_user_id] += 1
+
+    unassigned = [c for c in active_chores if not c.assigned_to_user_id]
+    if not unassigned:
+        flash("No unassigned chores to auto-assign.", "info")
+        return redirect(url_for("main.db_test_list"))
+
+    assigned_count = 0
+    for chore in unassigned:
+        chosen_user_id = min(load, key=lambda uid: (load[uid], uid))
+        chore.assigned_to_user_id = chosen_user_id
+        load[chosen_user_id] += 1
+        assigned_count += 1
+
+    db.session.commit()
+    flash(f"Auto-assigned {assigned_count} chore(s) fairly.", "success")
+    return redirect(url_for("main.db_test_list"))
 
 
 # ---------------------------------------------------------
-# Registration / Login / Logout
+# Expenses (Equal Split + Custom Split + Summary)
+# ---------------------------------------------------------
+@main_bp.route("/expenses")
+@login_required
+@household_required
+def expenses():
+    """Expense list page + per-user summary for the active household."""
+    household = get_active_household()
+    current_user_id = session.get("user_id")
+
+    expenses_list = (
+        Expense.query
+        .filter_by(household_id=household.id)
+        .order_by(Expense.created_at.desc())
+        .all()
+    )
+
+    # FIX: only household members
+    household_members = get_household_members(household.id)
+
+    my_total_owed = 0.0
+    my_total_owed_to_me = 0.0
+
+    my_owed_lines = []
+    owed_by_person = {}
+    owed_to_me_by_person = {}
+
+    for exp in expenses_list:
+        payer = exp.payer
+
+        for share in exp.shares:
+            if share.user_id == current_user_id:
+                if payer and payer.id != current_user_id:
+                    amt = float(share.amount_owed)
+                    if amt > 0:
+                        my_total_owed += amt
+                        my_owed_lines.append({
+                            "to_name": payer.name,
+                            "expense_title": exp.title,
+                            "amount": amt,
+                        })
+                        owed_by_person[payer.name] = owed_by_person.get(payer.name, 0.0) + amt
+
+        if payer and payer.id == current_user_id:
+            for share in exp.shares:
+                if share.user_id != current_user_id:
+                    amt = float(share.amount_owed)
+                    if amt > 0:
+                        my_total_owed_to_me += amt
+                        debtor = next((u for u in household_members if u.id == share.user_id), None)
+                        debtor_name = debtor.name if debtor else f"User {share.user_id}"
+                        owed_to_me_by_person[debtor_name] = owed_to_me_by_person.get(debtor_name, 0.0) + amt
+
+    my_net = my_total_owed_to_me - my_total_owed
+
+    my_owed_by_person = [{"name": k, "total": v} for k, v in owed_by_person.items()]
+    my_owed_by_person.sort(key=lambda x: x["total"], reverse=True)
+
+    owed_to_me_by_person_list = [{"name": k, "total": v} for k, v in owed_to_me_by_person.items()]
+    owed_to_me_by_person_list.sort(key=lambda x: x["total"], reverse=True)
+
+    my_owed_lines.sort(key=lambda x: x["amount"], reverse=True)
+
+    return render_template(
+        "expenses.html",
+        household=household,
+        expenses=expenses_list,
+        household_members=household_members,
+
+        my_total_owed=my_total_owed,
+        my_total_owed_to_me=my_total_owed_to_me,
+        my_net=my_net,
+        my_owed_lines=my_owed_lines,
+        my_owed_by_person=my_owed_by_person,
+        owed_to_me_by_person=owed_to_me_by_person_list,
+    )
+
+
+@main_bp.route("/expenses/add", methods=["POST"])
+@login_required
+@household_required
+def add_expense():
+    """Add an expense and split it evenly or by custom amounts."""
+    household = get_active_household()
+
+    title = request.form.get("title", "").strip()
+    amount_str = request.form.get("total_amount", "").strip()
+    split_method = request.form.get("split_method", "even").strip().lower()
+
+    if not title or not amount_str:
+        flash("Please enter an expense name and amount.", "danger")
+        return redirect(url_for("main.expenses"))
+
+    try:
+        total_amount = float(amount_str)
+        if total_amount <= 0:
+            raise ValueError
+    except ValueError:
+        flash("Invalid amount.", "danger")
+        return redirect(url_for("main.expenses"))
+
+    expense = Expense(
+        title=title,
+        total_amount=total_amount,
+        household_id=household.id,
+        paid_by_user_id=session["user_id"],
+    )
+    db.session.add(expense)
+    db.session.flush()
+
+    # FIX: only users in this household
+    users = (
+        User.query
+        .filter_by(household_id=household.id)
+        .order_by(User.id.asc())
+        .all()
+    )
+    if not users:
+        flash("No household members found to split the expense.", "danger")
+        db.session.rollback()
+        return redirect(url_for("main.expenses"))
+
+    total_cents = int(round(total_amount * 100))
+
+    try:
+        if split_method == "custom":
+            shares = []
+            sum_cents = 0
+
+            for user in users:
+                key = f"custom_amount_{user.id}"
+                raw = (request.form.get(key) or "").strip()
+                if raw == "":
+                    cents = 0
+                else:
+                    try:
+                        val = float(raw)
+                        if val < 0:
+                            raise ValueError
+                        cents = int(round(val * 100))
+                    except ValueError:
+                        raise ValueError("Custom split contains an invalid amount.")
+
+                sum_cents += cents
+                shares.append((user.id, cents))
+
+            if sum_cents != total_cents:
+                raise ValueError("Custom amounts must add up exactly to the total expense.")
+
+            for user_id, cents in shares:
+                db.session.add(
+                    ExpenseShare(
+                        expense_id=expense.id,
+                        user_id=user_id,
+                        amount_owed=cents / 100.0,
+                    )
+                )
+
+            db.session.commit()
+            flash("Expense added with custom split.", "success")
+            return redirect(url_for("main.expenses"))
+
+        split_cents = total_cents // len(users)
+        remainder = total_cents % len(users)
+        users_sorted = sorted(users, key=lambda u: u.id)
+
+        for idx, user in enumerate(users_sorted):
+            cents = split_cents + (1 if idx < remainder else 0)
+            db.session.add(
+                ExpenseShare(
+                    expense_id=expense.id,
+                    user_id=user.id,
+                    amount_owed=cents / 100.0,
+                )
+            )
+
+        db.session.commit()
+        flash("Expense added and split equally.", "success")
+        return redirect(url_for("main.expenses"))
+
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), "danger")
+        return redirect(url_for("main.expenses"))
+
+
+# ---------------------------------------------------------
+# Auth
 # ---------------------------------------------------------
 @main_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """Handle new user registration."""
-    # If already logged in, no need to register again
-    if session.get("user_id"):
-        flash("You’re already logged in.", "info")
-        return redirect(url_for("main.index"))
-
+    """User registration."""
     if request.method == "POST":
+        # stop session leakage between accounts in the same browser
+        session.clear()
+
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
 
-        # Basic validation checks
         if not name or not email or not password:
-            flash("Please fill in all required fields.", "danger")
+            flash("All fields are required.", "danger")
             return redirect(url_for("main.register"))
 
         if password != confirm:
             flash("Passwords do not match.", "danger")
             return redirect(url_for("main.register"))
 
-        # Check if email is already in use
-        existing = User.query.filter_by(email=email).first()
-        if existing:
-            flash("An account with that email already exists.", "warning")
+        if User.query.filter_by(email=email).first():
+            flash("Email already registered.", "warning")
             return redirect(url_for("main.register"))
 
-        # Create new user with hashed password
         user = User(name=name, email=email)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
 
-        flash("Account created successfully. You can now log in.", "success")
+        flash("Account created. Please log in.", "success")
         return redirect(url_for("main.login"))
 
-    # GET request: show registration form
     return render_template("register.html")
 
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
-    """Handle user login and set session variables."""
-    if session.get("user_id"):
-        flash("You are already logged in.", "info")
-        return redirect(url_for("main.index"))
-
+    """User login."""
     if request.method == "POST":
+        # stop session leakage between accounts in the same browser
+        session.clear()
+
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
 
         user = User.query.filter_by(email=email).first()
 
-        # Check both existence and password validity
         if user and user.check_password(password):
-            # Store basic user info in the session
             session["user_id"] = user.id
             session["user_name"] = user.name
-            flash(f"Welcome back, {user.name}!", "success")
-            return redirect(url_for("main.db_test_list"))
-        else:
-            flash("Invalid email or password.", "danger")
-            return redirect(url_for("main.login"))
 
-    # GET request: show login form
+            # restore household for this user (survives logout/login)
+            if getattr(user, "active_household_id", None):
+                session["active_household_id"] = user.active_household_id
+
+            flash("Logged in successfully.", "success")
+            return redirect(url_for("main.expenses"))
+
+        flash("Invalid email or password.", "danger")
+
     return render_template("login.html")
 
 
 @main_bp.route("/logout")
 def logout():
-    """Log the user out by clearing session values."""
-    session.pop("user_id", None)
-    session.pop("user_name", None)
-    session.pop("active_household_id", None)
-    flash("You have been logged out.", "info")
+    """Log out."""
+    # Keep DB value so household restores next login
+    session.clear()
+    flash("Logged out.", "info")
     return redirect(url_for("main.index"))

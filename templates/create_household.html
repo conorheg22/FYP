@@ -15,28 +15,38 @@
   <!--
     Form to create a new household.
     - Submits via POST back to the same route (main.create_household)
-    - The backend generates an invite code and sets it as the active household
+    - The backend generates an invite code
+    - The household is saved AND persisted on the user
   -->
   <form method="POST">
 
     <!-- Household name input (required) -->
     <div class="mb-3">
       <label for="name" class="form-label">Household Name</label>
-      <input type="text" name="name" class="form-control" required>
+      <input
+        type="text"
+        name="name"
+        id="name"
+        class="form-control"
+        required
+      >
     </div>
 
     <!-- Optional address field -->
     <div class="mb-3">
       <label for="address" class="form-label">Address (optional)</label>
-      <input type="text" name="address" class="form-control">
+      <input
+        type="text"
+        name="address"
+        id="address"
+        class="form-control"
+      >
     </div>
 
-    <!--
-      Submit button to create the household.
-      Styled using Bootstrap's primary button.
-      Reference: Bootstrap (2025) Buttons documentation.
-    -->
-    <button type="submit" class="btn btn-primary">Create Household</button>
+    <!-- Submit button -->
+    <button type="submit" class="btn btn-primary">
+      Create Household
+    </button>
 
   </form>
 </div>

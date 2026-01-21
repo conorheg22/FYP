@@ -1,72 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!--
-  Edit Chore Page
-  ----------------
-  This page is loaded when the user clicks "Edit" on a specific chore.
-  It allows the user to:
-    - Update the chore title
-    - Add or change an optional due date
-  All values are pre-filled from the current chore object passed from main.py
--->
+<div class="homi-shell">
+  <div class="homi-container">
 
-<div class="row">
-  <div class="col-12 col-md-6">
+    <h1 class="homi-title" style="font-size:44px;">Edit Chore</h1>
+    <p class="homi-subtitle">Update the title and due date.</p>
 
-    <!-- Page heading -->
-    <h1 class="h4 mb-3">Edit chore</h1>
+    <div class="homi-card" style="max-width: 720px;">
+      <h2 class="homi-card-title">Edit chore</h2>
 
-    <!--
-      Form to update the chore.
-      Uses POST to submit changes back to main.db_test_edit (same URL).
-    -->
-    <form method="POST">
+      <form method="POST" class="homi-form">
+        <div class="homi-field">
+          <label class="homi-label">Title</label>
+          <input
+            type="text"
+            name="title"
+            class="homi-input"
+            value="{{ chore.title }}"
+            required
+          >
+        </div>
 
-      <!--
-        Title field
-        - Required input
-        - Pre-populated with the chore's current title
-      -->
-      <div class="mb-3">
-        <label class="form-label">Title</label>
-        <input
-          type="text"
-          name="title"
-          class="form-control"
-          value="{{ chore.title }}"
-          required
-        >
-      </div>
+        <div class="homi-field">
+          <label class="homi-label">Due date (optional)</label>
+          <input
+            type="date"
+            name="due_date"
+            class="homi-input"
+            value="{{ chore.due_date.strftime('%Y-%m-%d') if chore.due_date }}"
+          >
+        </div>
 
-      <!--
-        Due date field (optional)
-        - Uses HTML <input type="date">
-        - value is pre-filled only if chore has a due_date
-        - strftime ensures proper format: YYYY-MM-DD (HTML date format)
-      -->
-      <div class="mb-3">
-        <label class="form-label">Due date (optional)</label>
-        <input
-          type="date"
-          name="due_date"
-          class="form-control"
-          value="{{ chore.due_date.strftime('%Y-%m-%d') if chore.due_date }}"
-        >
-      </div>
+        <div class="homi-actions">
+          <button type="submit" class="homi-btn homi-btn-primary">Save changes</button>
+          <a href="{{ url_for('main.db_test_list') }}" class="homi-btn homi-btn-ghost">Cancel</a>
+        </div>
+      </form>
+    </div>
 
-      <!--
-        FORM BUTTONS
-        - Save changes: submits form
-        - Cancel: returns user to main chores list without modifying data
-      -->
-      <button type="submit" class="btn btn-primary">Save changes</button>
-
-      <a href="{{ url_for('main.db_test_list') }}" class="btn btn-outline-secondary ms-2">
-        Cancel
-      </a>
-
-    </form>
   </div>
 </div>
 

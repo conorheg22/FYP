@@ -10,20 +10,20 @@
 
 /* --------- THEME TOKENS --------- */
 :root {
-  --bg: #f3f6fd;                  /* soft light blue background like your screenshots */
-  --card: #ffffff;                /* card surface */
-  --text: #0f172a;                /* slate-900 */
-  --muted: #64748b;               /* slate-500 */
+  --bg: #f3f6fd;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
   --border: rgba(15, 23, 42, 0.08);
 
-  --primary: #6d5dfc;             /* purple */
-  --primary-2: #8f7cff;           /* lighter purple */
-  --primary-soft: #eef2ff;        /* soft purple background */
+  --primary: #6d5dfc;
+  --primary-2: #8f7cff;
+  --primary-soft: #eef2ff;
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
 
-  --danger: #ef4444;              /* red */
-  --success: #22c55e;             /* green */
-  --warning: #f59e0b;             /* amber */
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
 }
 
 /* --------- GENERAL --------- */
@@ -46,7 +46,6 @@ main {
   flex: 1;
 }
 
-/* Make default headings match modern UI */
 h1, h2, h3 {
   font-weight: 700;
   color: var(--text);
@@ -65,11 +64,11 @@ p, .text-muted {
   border: 1px solid var(--border);
 }
 
-/* Optional: card with subtle left accent (like your stat cards) */
 .homi-accent {
   position: relative;
   overflow: hidden;
 }
+
 .homi-accent::before {
   content: "";
   position: absolute;
@@ -79,22 +78,19 @@ p, .text-muted {
 }
 
 /* --------- NAVBAR --------- */
-/* Your screenshots show a clean white nav with purple accents */
 header.homi {
   background: #ffffff;
   border-bottom: 1px solid var(--border);
   box-shadow: 0 8px 24px rgba(0,0,0,0.05);
 }
 
-/* Brand logo image size in the navbar */
 .navbar-brand img {
   height: 40px;
   margin-right: 8px;
 }
 
-/* Nav links */
 .navbar .nav-link {
-  color: #334155 !important; /* slate-700 */
+  color: #334155 !important;
   font-weight: 600;
 }
 
@@ -103,16 +99,15 @@ header.homi {
   text-decoration: none;
 }
 
-/* Active link */
 .navbar .nav-link.active {
   color: var(--primary) !important;
 }
 
-/* If you use Bootstrap .navbar-dark anywhere, keep it readable */
 .navbar-dark .navbar-nav .nav-link {
   color: white;
   font-weight: 600;
 }
+
 .navbar-dark .navbar-nav .nav-link:hover {
   text-decoration: underline;
 }
@@ -143,7 +138,6 @@ header.homi {
   color: var(--primary);
 }
 
-/* Small icon buttons (edit/delete) */
 .btn-icon {
   width: 38px;
   height: 38px;
@@ -154,12 +148,16 @@ header.homi {
 }
 
 /* --------- FORMS --------- */
-input.form-control, select.form-control, textarea.form-control {
+input.form-control,
+select.form-control,
+textarea.form-control {
   border-radius: 12px;
   border: 1px solid rgba(15, 23, 42, 0.10);
 }
 
-input.form-control:focus, select.form-control:focus, textarea.form-control:focus {
+input.form-control:focus,
+select.form-control:focus,
+textarea.form-control:focus {
   border-color: rgba(109, 93, 252, 0.75);
   box-shadow: 0 0 0 0.2rem rgba(109, 93, 252, 0.15);
 }
@@ -176,7 +174,7 @@ input.form-control:focus, select.form-control:focus, textarea.form-control:focus
   text-decoration: line-through;
 }
 
-/* --------- BADGES / TAGS --------- */
+/* --------- BADGES --------- */
 .badge {
   border-radius: 999px;
   padding: 8px 12px;
@@ -212,4 +210,249 @@ footer.homi {
   color: var(--muted);
   text-align: center;
   padding: 1rem;
+}
+
+/* =========================================================
+   HOMI CHORES — EXPENSES-STYLE UI
+   ========================================================= */
+
+.homi-shell {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+.homi-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+/* Header */
+.homi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .homi-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.homi-title {
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.homi-subtitle {
+  margin-top: 10px;
+  font-size: 20px;
+}
+
+/* Buttons (HOMI specific) */
+.homi-btn {
+  height: 52px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.homi-btn-lg {
+  height: 56px;
+  padding: 0 22px;
+  font-size: 18px;
+}
+
+.homi-btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border: none;
+  color: #fff;
+}
+
+.homi-btn-primary:hover {
+  filter: brightness(0.95);
+}
+
+.homi-btn-ghost {
+  background: transparent;
+}
+
+/* Tabs */
+.homi-tabs {
+  margin-top: 22px;
+  display: inline-flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--border);
+}
+
+.homi-tab {
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.homi-tab.active {
+  background: #fff;
+  box-shadow: var(--shadow);
+  color: var(--primary);
+}
+
+/* Panels */
+.homi-panel { display: none; }
+.homi-panel.active { display: block; }
+
+/* Empty states */
+.homi-empty {
+  padding: 18px 6px;
+}
+
+.homi-empty-title {
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.homi-empty-text {
+  font-size: 16px;
+}
+
+/* Chore cards */
+.homi-chore-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.homi-chore-left {
+  display: flex;
+  gap: 14px;
+}
+
+/* Old circle style (no longer used, kept harmless) */
+.homi-check-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid rgba(15, 23, 42, 0.2);
+}
+
+.homi-check-circle.done {
+  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.15);
+}
+
+/* -----------------------------
+   NEW: clearer "mark done" checkbox button (box style)
+------------------------------ */
+.homi-checkbox-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 2px solid rgba(15, 23, 42, 0.18);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.homi-checkbox-btn:hover {
+  border-color: rgba(109, 93, 252, 0.55);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
+}
+
+.homi-checkbox-btn:active {
+  transform: translateY(0px);
+}
+
+.homi-checkbox-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(109, 93, 252, 0.18);
+  border-color: rgba(109, 93, 252, 0.75);
+}
+
+/* checkmark (hidden until done) */
+.homi-checkmark {
+  width: 18px;
+  height: 10px;
+  border-left: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transform: rotate(-45deg);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+/* completed state */
+.homi-checkbox-btn.is-done {
+  background: var(--primary-soft);
+  border-color: rgba(109, 93, 252, 0.85);
+}
+
+.homi-checkbox-btn.is-done .homi-checkmark {
+  border-left-color: var(--primary);
+  border-bottom-color: var(--primary);
+  opacity: 1;
+}
+
+.homi-chore-title {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.homi-chore-title.completed {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.homi-badge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+}
+
+.homi-chore-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.homi-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.homi-icon-btn:hover {
+  background: var(--primary-soft);
 }
