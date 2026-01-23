@@ -5,10 +5,15 @@
 
      <!-- Reference: Hegarty, C. (2024) Header and Footer Design — IS3312 Project Phase 1.
      Unpublished student project, University College Cork.
-     The header and footer HTML structures were adapted from this previous project. -->
+     The header and footer HTML structures were adapted from this previous project.
+     -	Bootstrap (2024) Buttons. Available at: https://getbootstrap.com/docs/5.3/components/buttons/
+     -	Bootstrap (2024) Cards. Available at: https://getbootstrap.com/docs/5.3/components/card/
+     -	Bootstrap (2024) Flex utilities. Available at: https://getbootstrap.com/docs/5.3/utilities/flex/
+     -	Bootstrap (2024) Utilities for spacing and sizing. Available at: https://getbootstrap.com/docs/5.3/utilities/spacing/ -->
 */
 
-/* --------- THEME TOKENS --------- */
+/* --------- THEME TOKENS ---------
+   Central place for colours + shadows so the design stays consistent site-wide. */
 :root {
   --bg: #f3f6fd;
   --card: #ffffff;
@@ -26,7 +31,8 @@
   --warning: #f59e0b;
 }
 
-/* --------- GENERAL --------- */
+/* --------- GENERAL LAYOUT ---------
+   Makes the footer sit at the bottom and keeps a clean full-height layout. */
 html, body {
   height: 100%;
 }
@@ -55,7 +61,8 @@ p, .text-muted {
   color: var(--muted) !important;
 }
 
-/* --------- CARDS --------- */
+/* --------- CARDS ---------
+   Shared card look for panels across the site. */
 .card.homi,
 .homi-card {
   background-color: var(--card);
@@ -64,6 +71,7 @@ p, .text-muted {
   border: 1px solid var(--border);
 }
 
+/* Accent strip used on some cards for branding */
 .homi-accent {
   position: relative;
   overflow: hidden;
@@ -77,7 +85,8 @@ p, .text-muted {
   background: linear-gradient(180deg, var(--primary), var(--primary-2));
 }
 
-/* --------- NAVBAR --------- */
+/* --------- NAVBAR ---------
+   Standardised header so navigation looks consistent. */
 header.homi {
   background: #ffffff;
   border-bottom: 1px solid var(--border);
@@ -112,7 +121,8 @@ header.homi {
   text-decoration: underline;
 }
 
-/* --------- BUTTONS --------- */
+/* --------- BUTTONS ---------
+   Bootstrap buttons restyled to match the HOMI theme. */
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
   border: none;
@@ -147,7 +157,8 @@ header.homi {
   justify-content: center;
 }
 
-/* --------- FORMS --------- */
+/* --------- FORMS ---------
+   Softer inputs + clear focus ring. */
 input.form-control,
 select.form-control,
 textarea.form-control {
@@ -174,7 +185,8 @@ textarea.form-control:focus {
   text-decoration: line-through;
 }
 
-/* --------- BADGES --------- */
+/* --------- BADGES ---------
+   Small labels used for status like overdue/priority. */
 .badge {
   border-radius: 999px;
   padding: 8px 12px;
@@ -216,6 +228,7 @@ footer.homi {
    HOMI CHORES — EXPENSES-STYLE UI
    ========================================================= */
 
+/* Main layout container for the app pages */
 .homi-shell {
   min-height: 100%;
   background: var(--bg);
@@ -227,7 +240,7 @@ footer.homi {
   padding: 48px 24px;
 }
 
-/* Header */
+/* Header area used in dashboards (title + actions) */
 .homi-header {
   display: flex;
   justify-content: space-between;
@@ -255,7 +268,7 @@ footer.homi {
   font-size: 20px;
 }
 
-/* Buttons (HOMI specific) */
+/* HOMI-specific button style used across chore/expense pages */
 .homi-btn {
   height: 52px;
   padding: 0 18px;
@@ -289,7 +302,7 @@ footer.homi {
   background: transparent;
 }
 
-/* Tabs */
+/* Tabs used to swap between chore sections (overdue/upcoming/etc.) */
 .homi-tabs {
   margin-top: 22px;
   display: inline-flex;
@@ -315,11 +328,11 @@ footer.homi {
   color: var(--primary);
 }
 
-/* Panels */
+/* Panels: only active panel is shown */
 .homi-panel { display: none; }
 .homi-panel.active { display: block; }
 
-/* Empty states */
+/* Empty state blocks */
 .homi-empty {
   padding: 18px 6px;
 }
@@ -333,7 +346,7 @@ footer.homi {
   font-size: 16px;
 }
 
-/* Chore cards */
+/* Chore card layout */
 .homi-chore-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -350,7 +363,10 @@ footer.homi {
   gap: 14px;
 }
 
-/* Old circle style (no longer used, kept harmless) */
+/* Chore completion control:
+   - The template uses a button with a circular indicator.
+   - You can restyle this to a "boxed" button by adjusting width/height,
+     border-radius, and hover/focus styles here. */
 .homi-check-circle {
   width: 22px;
   height: 22px;
@@ -363,61 +379,7 @@ footer.homi {
   background: rgba(34, 197, 94, 0.15);
 }
 
-/* -----------------------------
-   NEW: clearer "mark done" checkbox button (box style)
------------------------------- */
-.homi-checkbox-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 2px solid rgba(15, 23, 42, 0.18);
-  background: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
-}
-
-.homi-checkbox-btn:hover {
-  border-color: rgba(109, 93, 252, 0.55);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-  transform: translateY(-1px);
-}
-
-.homi-checkbox-btn:active {
-  transform: translateY(0px);
-}
-
-.homi-checkbox-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(109, 93, 252, 0.18);
-  border-color: rgba(109, 93, 252, 0.75);
-}
-
-/* checkmark (hidden until done) */
-.homi-checkmark {
-  width: 18px;
-  height: 10px;
-  border-left: 3px solid transparent;
-  border-bottom: 3px solid transparent;
-  transform: rotate(-45deg);
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-/* completed state */
-.homi-checkbox-btn.is-done {
-  background: var(--primary-soft);
-  border-color: rgba(109, 93, 252, 0.85);
-}
-
-.homi-checkbox-btn.is-done .homi-checkmark {
-  border-left-color: var(--primary);
-  border-bottom-color: var(--primary);
-  opacity: 1;
-}
-
+/* Chore title styles */
 .homi-chore-title {
   font-weight: 800;
   font-size: 18px;
@@ -428,6 +390,7 @@ footer.homi {
   color: #94a3b8;
 }
 
+/* Badges used in chore meta row (overdue, date, priority, assigned-to) */
 .homi-badge {
   border-radius: 999px;
   padding: 6px 10px;
@@ -436,6 +399,7 @@ footer.homi {
   border: 1px solid var(--border);
 }
 
+/* Right-side action buttons on chore cards */
 .homi-chore-actions {
   display: flex;
   gap: 10px;

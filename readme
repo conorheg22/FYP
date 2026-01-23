@@ -36,3 +36,16 @@ ChatGPT (2025) Help with chore routing. Conversation available at: https://chatg
  (Accessed: 2 November 2025).
 
 Hegarty, C. (2024) Header and Footer Design — IS3312 Project Phase 1. Unpublished student project, University College Cork.
+
+ITERATION 3 REFERENCES
+-	ChatGPT was used to assist in generating the logic for the chore auto-assignment feature based on a least-loaded fairness strategy: https://chatgpt.com/share/6973deec-6058-8007-8717-104ca073d10d
+-	ChatGPT was used to assist in generating the expense-splitting logic, including even and custom splits with currency-safe handling. https://chatgpt.com/share/6973e1a2-9d54-8007-b185-b4ce3cc9d023
+-	Algorithm discussion: fair task distribution. Real developer discussion on task assignment heuristics, used to understand chore auto-assignment. Stack Overflow (2010) Algorithm for fairly assigning tasks to workers. Available at: https://stackoverflow.com/questions/4765015/algorithm-for-fairly-assigning-tasks-to-workers-based-on-skills (Accessed: 19th December 2025)
+-	Algorithm for settling shared expenses. Stack Overflow (2009) Algorithm to share/settle expenses among a group. Available at: https://stackoverflow.com/questions/974922/algorithm-to-share-settle-expenses-among-a-group
+-	Example expense-splitting implementation (code precedent). Mozilla, U. (2022) Splitwise-style expense sharing in Python. GitHub repository. Available at: https://github.com/uniquemozilla22/Splitwise_PY
+-	Bootstrap (2024) Buttons. Available at: https://getbootstrap.com/docs/5.3/components/buttons/
+-	Bootstrap (2024) Cards. Available at: https://getbootstrap.com/docs/5.3/components/card/
+-	Bootstrap (2024) Flex utilities. Available at: https://getbootstrap.com/docs/5.3/utilities/flex/
+-	Bootstrap (2024) Utilities for spacing and sizing. Available at: https://getbootstrap.com/docs/5.3/utilities/spacing/
+-   MDN Web Docs (2024): Client-side form validation: https://developer.mozilla.org/en-US/docs/Learn/Forms/Form_validation
+-   MDN Web Docs (2024): Introduction to the DOM: https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction

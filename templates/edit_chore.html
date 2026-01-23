@@ -1,16 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- Page shell for consistent layout styling -->
 <div class="homi-shell">
   <div class="homi-container">
 
+    <!-- Page heading and description -->
     <h1 class="homi-title" style="font-size:44px;">Edit Chore</h1>
     <p class="homi-subtitle">Update the title and due date.</p>
 
+    <!-- Card container holding the edit form -->
     <div class="homi-card" style="max-width: 720px;">
       <h2 class="homi-card-title">Edit chore</h2>
 
+      <!-- Form for editing chore fields -->
+      <!-- Submits changes via POST to the edit route -->
       <form method="POST" class="homi-form">
+        <!-- Chore title input -->
         <div class="homi-field">
           <label class="homi-label">Title</label>
           <input
@@ -22,6 +28,7 @@
           >
         </div>
 
+        <!-- Optional due date input -->
         <div class="homi-field">
           <label class="homi-label">Due date (optional)</label>
           <input
@@ -32,9 +39,15 @@
           >
         </div>
 
+        <!-- Form action buttons -->
         <div class="homi-actions">
-          <button type="submit" class="homi-btn homi-btn-primary">Save changes</button>
-          <a href="{{ url_for('main.db_test_list') }}" class="homi-btn homi-btn-ghost">Cancel</a>
+          <button type="submit" class="homi-btn homi-btn-primary">
+            Save changes
+          </button>
+          <a href="{{ url_for('main.db_test_list') }}"
+             class="homi-btn homi-btn-ghost">
+            Cancel
+          </a>
         </div>
       </form>
     </div>

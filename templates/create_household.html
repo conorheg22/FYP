@@ -5,7 +5,7 @@
 <!--
   Card container for the Create Household page.
   - Uses Bootstrap card styling
-  - The .homi class applies your custom theme colours
+  - The .homi class applies custom theme colours
 -->
 <div class="card homi p-4">
 
@@ -14,9 +14,9 @@
 
   <!--
     Form to create a new household.
-    - Submits via POST back to the same route (main.create_household)
-    - The backend generates an invite code
-    - The household is saved AND persisted on the user
+    - Submits via POST to the same route (main.create_household)
+    - Backend generates an invite code
+    - Household is saved and linked to the logged-in user
   -->
   <form method="POST">
 
@@ -32,7 +32,7 @@
       >
     </div>
 
-    <!-- Optional address field -->
+    <!-- Optional address input -->
     <div class="mb-3">
       <label for="address" class="form-label">Address (optional)</label>
       <input
@@ -43,7 +43,7 @@
       >
     </div>
 
-    <!-- Submit button -->
+    <!-- Form submit button -->
     <button type="submit" class="btn btn-primary">
       Create Household
     </button>

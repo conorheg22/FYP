@@ -1,5 +1,7 @@
+{# Partial template for rendering a single chore card. #}
 {# Expects: chore, overdue_chores, users_by_id #}
 
+{# Determine whether the current chore is overdue by checking if it exists in overdue_chores. #}
 {% set is_overdue = false %}
 {% for oc in overdue_chores %}
   {% if oc.id == chore.id %}
@@ -9,7 +11,8 @@
 
 <div class="homi-chore-card">
   <div class="homi-chore-left">
-    <!-- Toggle complete -->
+    <!-- Completion toggle form -->
+    <!-- Submits to the toggle route to switch completed/uncompleted status -->
     <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=chore.id) }}">
       <button
         type="submit"
@@ -22,10 +25,12 @@
     </form>
 
     <div class="homi-chore-main">
+      <!-- Chore title with completed styling -->
       <div class="homi-chore-title {% if chore.completed %}completed{% endif %}">
         {{ chore.title }}
       </div>
 
+      <!-- Metadata row: overdue, due date, optional priority, assignment -->
       <div class="homi-chore-meta">
         {% if is_overdue and not chore.completed %}
           <span class="homi-badge homi-badge-danger">
@@ -39,13 +44,14 @@
           </span>
         {% endif %}
 
+        {# Optional priority badge (only shown if priority exists on the model/object) #}
         {% if chore.priority is defined and chore.priority %}
           <span class="homi-badge homi-badge-warning">
             {{ chore.priority }} priority
           </span>
         {% endif %}
 
-        {# Owner badge (NEW) #}
+        {# Assignment badge showing the assignee name (or unassigned). #}
         {% if chore.assigned_to_user_id %}
           {% set owner = users_by_id.get(chore.assigned_to_user_id) %}
           <span class="homi-badge homi-badge-soft">
@@ -63,9 +69,10 @@
     </div>
   </div>
 
-  <!-- Actions -->
+  <!-- Action buttons: assign/unassign, edit, delete -->
   <div class="homi-chore-actions">
     {% if not chore.assigned_to_user_id %}
+      <!-- Assign action: assigns chore to the current logged-in user -->
       <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=chore.id) }}">
         <button class="homi-icon-btn" type="submit" title="Assign to me" aria-label="Assign to me">
           👤
@@ -73,6 +80,7 @@
       </form>
     {% else %}
       {% if chore.assigned_to_user_id == session.get('user_id') %}
+        <!-- Unassign action: clears assignment only when current user is the assignee -->
         <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=chore.id) }}">
           <button class="homi-icon-btn" type="submit" title="Unassign" aria-label="Unassign">
             ⟲
@@ -81,10 +89,12 @@
       {% endif %}
     {% endif %}
 
+    <!-- Edit link -->
     <a class="homi-icon-btn" href="{{ url_for('main.db_test_edit', chore_id=chore.id) }}" title="Edit" aria-label="Edit">
       ✎
     </a>
 
+    <!-- Delete form with confirm dialog -->
     <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=chore.id) }}"
           onsubmit="return confirm('Delete this chore?');">
       <button class="homi-icon-btn danger" type="submit" title="Delete" aria-label="Delete">

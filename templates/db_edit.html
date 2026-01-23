@@ -1,21 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- Page shell and container used for consistent HOMI layout -->
 <div class="homi-shell">
   <div class="homi-container">
 
+    <!-- Page heading and supporting text -->
     <h1 class="homi-title" style="font-size:44px;">Edit Chore</h1>
     <p class="homi-subtitle">Update details for this chore.</p>
 
+    <!-- Card container for the edit form -->
     <div class="homi-card" style="max-width: 720px;">
       <h2 class="homi-card-title">✏️ Edit Chore</h2>
 
+      <!-- Edit form -->
+      <!-- Submits to the current route using POST (handled by the matching Flask route) -->
       <form method="post" class="homi-form">
+        <!-- Title field -->
         <div class="homi-field">
           <label class="homi-label">Title</label>
           <input name="title" class="homi-input" value="{{ chore.title }}" required />
         </div>
 
+        <!-- Form actions: submit update or cancel back to chores list -->
         <div class="homi-actions">
           <button class="homi-btn homi-btn-primary" type="submit">Save</button>
           <a class="homi-btn homi-btn-ghost" href="{{ url_for('main.db_test_list') }}">Cancel</a>
