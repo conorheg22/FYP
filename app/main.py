@@ -24,6 +24,7 @@ from .models import (
     User,
     Expense,
     ExpenseShare,
+    ChoreSwapRequest,
 )
 from . import db
 import random
@@ -268,6 +269,29 @@ def db_test_list():
     users = get_household_members(household.id)
     users_by_id = {u.id: u for u in users}
 
+    # --- Swap request data (for "trade chores" feature) ---
+    # Only show active (not completed) chores that are currently assigned to each user.
+    chores_by_user = {u.id: [] for u in users}
+    for c in active_chores:
+        if c.assigned_to_user_id in chores_by_user:
+            chores_by_user[c.assigned_to_user_id].append(c)
+
+    # Incoming swap requests where *I* need to accept/decline
+    incoming_swaps = (
+        ChoreSwapRequest.query
+        .filter_by(household_id=household.id, to_user_id=session.get("user_id"), status="pending")
+        .order_by(ChoreSwapRequest.created_at.desc())
+        .all()
+    )
+
+    # Outgoing swap requests that I have sent (still pending)
+    outgoing_swaps = (
+        ChoreSwapRequest.query
+        .filter_by(household_id=household.id, from_user_id=session.get("user_id"), status="pending")
+        .order_by(ChoreSwapRequest.created_at.desc())
+        .all()
+    )
+
     active_by_user = {u.id: 0 for u in users}
     unassigned_count = 0
 
@@ -303,6 +327,14 @@ def db_test_list():
 
         # for showing owner names in the chore cards
         users_by_id=users_by_id,
+
+        # household members (used for chore swap UI)
+        household_members=users,
+
+        # swap requests
+        chores_by_user=chores_by_user,
+        incoming_swaps=incoming_swaps,
+        outgoing_swaps=outgoing_swaps,
     )
 
 
@@ -439,6 +471,183 @@ def db_test_unassign(chore_id: int):
     db.session.commit()
 
     flash("Chore assignment cleared.", "info")
+    return redirect(url_for("main.db_test_list"))
+
+
+# ---------------------------------------------------------
+# Chore Swaps
+# ---------------------------------------------------------
+@main_bp.route("/db-test/<int:chore_id>/swap/request", methods=["POST"])
+@login_required
+@household_required
+def db_test_swap_request(chore_id: int):
+    """Create a swap request for one of my chores with another user's chore."""
+    household = get_active_household()
+    current_user_id = session.get("user_id")
+
+    offered_chore = Chore.query.get_or_404(chore_id)
+    if offered_chore.household_id != household.id:
+        abort(404)
+
+    # Safety rule: you can only offer a chore that is currently assigned to you.
+    if offered_chore.assigned_to_user_id != current_user_id:
+        flash("You can only request a swap for a chore assigned to you.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    to_user_id_raw = (request.form.get("to_user_id") or "").strip()
+    requested_chore_id_raw = (request.form.get("requested_chore_id") or "").strip()
+
+    if not to_user_id_raw or not requested_chore_id_raw:
+        flash("Please choose a person and a chore to swap with.", "warning")
+        return redirect(url_for("main.db_test_list"))
+
+    try:
+        to_user_id = int(to_user_id_raw)
+        requested_chore_id = int(requested_chore_id_raw)
+    except ValueError:
+        flash("Invalid swap request.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    if to_user_id == current_user_id:
+        flash("You cannot swap with yourself.", "warning")
+        return redirect(url_for("main.db_test_list"))
+
+    to_user = User.query.get_or_404(to_user_id)
+
+    # Must be in the same household
+    if to_user.household_id != household.id:
+        flash("That user is not in your household.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    requested_chore = Chore.query.get_or_404(requested_chore_id)
+
+    # Requested chore must belong to same household, be active, and be assigned to the target user.
+    if requested_chore.household_id != household.id:
+        flash("That chore is not in your household.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    if requested_chore.completed:
+        flash("You cannot swap for a completed chore.", "warning")
+        return redirect(url_for("main.db_test_list"))
+
+    if requested_chore.assigned_to_user_id != to_user_id:
+        flash("That chore is not assigned to the selected user.", "warning")
+        return redirect(url_for("main.db_test_list"))
+
+    # Prevent duplicate pending requests for the same pair (keeps UI cleaner)
+    existing = (
+        ChoreSwapRequest.query
+        .filter_by(
+            household_id=household.id,
+            from_user_id=current_user_id,
+            to_user_id=to_user_id,
+            offered_chore_id=offered_chore.id,
+            requested_chore_id=requested_chore.id,
+            status="pending",
+        )
+        .first()
+    )
+    if existing:
+        flash("You already have a pending swap request for those chores.", "info")
+        return redirect(url_for("main.db_test_list"))
+
+    swap = ChoreSwapRequest(
+        household_id=household.id,
+        from_user_id=current_user_id,
+        to_user_id=to_user_id,
+        offered_chore_id=offered_chore.id,
+        requested_chore_id=requested_chore.id,
+        status="pending",
+    )
+    db.session.add(swap)
+    db.session.commit()
+
+    flash("Swap request sent. The other user can accept or decline.", "success")
+    return redirect(url_for("main.db_test_list"))
+
+
+@main_bp.route("/db-test/swap/<int:swap_id>/accept", methods=["POST"])
+@login_required
+@household_required
+def db_test_swap_accept(swap_id: int):
+    """Accept a pending swap request and swap chore assignments."""
+    household = get_active_household()
+    current_user_id = session.get("user_id")
+
+    swap = ChoreSwapRequest.query.get_or_404(swap_id)
+
+    if swap.household_id != household.id:
+        abort(404)
+
+    # Only the recipient can accept
+    if swap.to_user_id != current_user_id:
+        flash("You are not allowed to accept this swap.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    if swap.status != "pending":
+        flash("This swap request is no longer pending.", "info")
+        return redirect(url_for("main.db_test_list"))
+
+    offered = Chore.query.get_or_404(swap.offered_chore_id)
+    requested = Chore.query.get_or_404(swap.requested_chore_id)
+
+    # Re-check ownership hasn't changed since request was created
+    if offered.household_id != household.id or requested.household_id != household.id:
+        flash("This swap is no longer valid.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    if offered.completed or requested.completed:
+        flash("This swap is no longer valid because a chore was completed.", "warning")
+        return redirect(url_for("main.db_test_list"))
+
+    if offered.assigned_to_user_id != swap.from_user_id:
+        flash("Swap failed because the offered chore is no longer assigned to the requester.", "warning")
+        return redirect(url_for("main.db_test_list"))
+
+    if requested.assigned_to_user_id != swap.to_user_id:
+        flash("Swap failed because your chore is no longer assigned to you.", "warning")
+        return redirect(url_for("main.db_test_list"))
+
+    # Swap the chore assignments
+    offered.assigned_to_user_id = swap.to_user_id
+    requested.assigned_to_user_id = swap.from_user_id
+
+    swap.status = "accepted"
+    swap.responded_at = datetime.utcnow()
+
+    db.session.commit()
+
+    flash("Swap accepted. Chores have been swapped.", "success")
+    return redirect(url_for("main.db_test_list"))
+
+
+@main_bp.route("/db-test/swap/<int:swap_id>/decline", methods=["POST"])
+@login_required
+@household_required
+def db_test_swap_decline(swap_id: int):
+    """Decline a pending swap request."""
+    household = get_active_household()
+    current_user_id = session.get("user_id")
+
+    swap = ChoreSwapRequest.query.get_or_404(swap_id)
+
+    if swap.household_id != household.id:
+        abort(404)
+
+    # Only the recipient can decline
+    if swap.to_user_id != current_user_id:
+        flash("You are not allowed to decline this swap.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
+    if swap.status != "pending":
+        flash("This swap request is no longer pending.", "info")
+        return redirect(url_for("main.db_test_list"))
+
+    swap.status = "declined"
+    swap.responded_at = datetime.utcnow()
+    db.session.commit()
+
+    flash("Swap declined.", "info")
     return redirect(url_for("main.db_test_list"))
 
 
