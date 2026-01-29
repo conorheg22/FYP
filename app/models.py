@@ -190,3 +190,67 @@ class ExpenseShare(db.Model):
     )
 
     amount_owed = db.Column(db.Float, nullable=False)
+
+
+# ---------------------------------------------------------
+# ChoreSwapRequest
+# ---------------------------------------------------------
+class ChoreSwapRequest(db.Model):
+    """Represents a chore swap request between two users in the same household.
+
+    Flow:
+    - from_user requests to swap their offered chore with the other user's requested chore
+    - to_user can accept or decline
+    - if accepted, the chore assignments are swapped
+    """
+    __tablename__ = "chore_swap_request"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    household_id = db.Column(
+        db.Integer,
+        db.ForeignKey("household.id"),
+        nullable=False,
+        index=True,
+    )
+
+    from_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False,
+        index=True,
+    )
+
+    to_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False,
+        index=True,
+    )
+
+    offered_chore_id = db.Column(
+        db.Integer,
+        db.ForeignKey("chore.id"),
+        nullable=False,
+        index=True,
+    )
+
+    requested_chore_id = db.Column(
+        db.Integer,
+        db.ForeignKey("chore.id"),
+        nullable=False,
+        index=True,
+    )
+
+    status = db.Column(db.String(20), nullable=False, default="pending", index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    responded_at = db.Column(db.DateTime, nullable=True)
+
+    # Relationships (explicit foreign_keys to avoid ambiguity)
+    household = db.relationship("Household", foreign_keys=[household_id], lazy=True)
+
+    from_user = db.relationship("User", foreign_keys=[from_user_id], lazy=True)
+    to_user = db.relationship("User", foreign_keys=[to_user_id], lazy=True)
+
+    offered_chore = db.relationship("Chore", foreign_keys=[offered_chore_id], lazy=True)
+    requested_chore = db.relationship("Chore", foreign_keys=[requested_chore_id], lazy=True)
