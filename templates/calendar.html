@@ -1,0 +1,233 @@
+<!-- Reference: Bootstrap cards
+https://getbootstrap.com/docs/5.0/components/card/ -->
+
+<!-- Reference: Bootstrap forms
+https://getbootstrap.com/docs/4.0/components/forms/ -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+
+  /* I keep a soft background here so the inventory page feels clean and readable. */
+  body {
+    background: #f6f7fb;
+  }
+
+  /* I reuse this card style so inventory matches the rest of my app visually. */
+  .inv-card {
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  /* I add a small hover effect so cards feel interactive. */
+  .inv-card:hover {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+    transition: 160ms ease;
+  }
+
+  /* Muted helper text styling used across the page. */
+  .inv-muted {
+    color: #6c757d;
+    font-size: 0.92rem;
+  }
+
+  .inv-title {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .inv-section-title {
+    font-weight: 700;
+    font-size: 1.02rem;
+    margin: 0;
+  }
+
+  /* These pill-style buttons act like tabs for filtering items. */
+  .inv-pill-tabs {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 6px;
+  }
+
+  .inv-pill-tabs .btn {
+    border-radius: 999px !important;
+    padding: 6px 12px;
+  }
+
+  /* Quick dashboard rows for frequent and low-stock items. */
+  .inv-quick-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .inv-quick-row:hover {
+    background: #fbfcfe;
+  }
+
+  /* Small pill used to display quantities consistently. */
+  .inv-qty {
+    font-size: 0.85rem;
+    background: #f1f3f5;
+    border-radius: 999px;
+    padding: 2px 10px;
+    color: #495057;
+  }
+
+  /* I visually mark zero-quantity items so they stand out. */
+  .inv-qty.inv-qty-zero {
+    background: #f8f9fa;
+    color: #868e96;
+    border: 1px dashed rgba(0,0,0,0.15);
+  }
+
+  /* Status pills help quickly show expiry and stock state. */
+  .inv-status.ok { background: rgba(25, 135, 84, 0.12); color: #146c43; }
+  .inv-status.warn { background: rgba(255, 193, 7, 0.18); color: #8a6d00; }
+  .inv-status.bad { background: rgba(220, 53, 69, 0.14); color: #b02a37; }
+  .inv-status.zero { background: rgba(108, 117, 125, 0.14); color: #495057; }
+
+  /* Collapsible edit panel for inline item editing. */
+  .inv-edit-panel {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  /* Search and sort controls stay compact and responsive. */
+  .inv-controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* Small accessibility improvement for keyboard users. */
+  .btn:focus-visible,
+  .form-control:focus-visible,
+  .form-select:focus-visible,
+  .homi-btn:focus-visible {
+    outline: 2px solid rgba(13, 110, 253, 0.35);
+    outline-offset: 2px;
+  }
+</style>
+
+<div class="container py-4">
+
+  <!-- I show filter tabs at the top so users can quickly switch views. -->
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+    <div>
+      <h2 class="inv-title mb-1">Inventory</h2>
+      <div class="inv-muted">
+        Track shared supplies, avoid duplicates, and keep an eye on expiry.
+      </div>
+    </div>
+
+    <!-- These links work like tabs but keep routing simple. -->
+    <div class="d-flex align-items-center inv-pill-tabs">
+      ...
+    </div>
+  </div>
+
+  {# I only show dashboards and the add form when viewing all items #}
+  {% if active_filter == "all" %}
+    ...
+  {% endif %}
+
+  <!-- This section contains search, sort, and item count. -->
+  <div class="inv-controls mb-2">
+    ...
+  </div>
+
+  <!-- I loop through items and render each one as a card. -->
+  <div id="invList" class="d-flex flex-column">
+    {% for item in items %}
+      ...
+    {% endfor %}
+  </div>
+
+</div>
+
+
+
+<!--
+  Calendar UI implemented using FullCalendar and a Flask JSON endpoint.
+  Integration approach informed by AI-assisted guidance for FullCalendar event feeds.
+  Source: ChatGPT conversation – Calendar feature prompt (Feb 2026) - https://chatgpt.com/share/69866053-0d34-8007-9bfa-0f43543abcf2
+-->
+<script>
+  // ---------------------------------------------------------
+  // Client-side UX helpers
+  // I keep this logic simple and non-invasive.
+  // ---------------------------------------------------------
+  (function () {
+
+    // I grab the main controls once so I can reuse them.
+    const searchInput = document.getElementById("invSearch");
+    const sortSelect = document.getElementById("invSort");
+    const list = document.getElementById("invList");
+    const countEl = document.getElementById("invCount");
+
+    // I use this to get all item cards from the DOM.
+    function getItems() {
+      return Array.from(list.querySelectorAll("[data-item]"));
+    }
+
+    // I update the visible item count after filtering.
+    function updateCount() {
+      const visible = getItems().filter(el => el.style.display !== "none").length;
+      if (countEl) countEl.textContent = visible;
+    }
+
+    // I filter items by name as the user types.
+    function applySearch() {
+      const q = (searchInput.value || "").trim().toLowerCase();
+      getItems().forEach(el => {
+        const name = el.getAttribute("data-item-name") || "";
+        el.style.display = name.includes(q) ? "" : "none";
+      });
+      updateCount();
+    }
+
+    // I sort items by reordering existing DOM nodes.
+    function applySort() {
+      const mode = sortSelect.value;
+      const items = getItems();
+
+      const getName = el => el.getAttribute("data-item-name") || "";
+      const getQty = el => parseInt(el.getAttribute("data-item-qty") || "0", 10);
+      const getExp = el => parseInt(el.getAttribute("data-item-expiry") || "999999", 10);
+
+      const cmp = {
+        name_asc:   (a,b) => getName(a).localeCompare(getName(b)),
+        name_desc:  (a,b) => getName(b).localeCompare(getName(a)),
+        qty_asc:    (a,b) => getQty(a) - getQty(b),
+        qty_desc:   (a,b) => getQty(b) - getQty(a),
+        expiry_asc: (a,b) => getExp(a) - getExp(b),
+        expiry_desc:(a,b) => getExp(b) - getExp(a),
+      }[mode];
+
+      if (!cmp) return;
+
+      items.sort(cmp).forEach(el => list.appendChild(el));
+    }
+
+    // I hook search and sort into user interactions.
+    if (searchInput) searchInput.addEventListener("input", applySearch);
+    if (sortSelect) sortSelect.addEventListener("change", applySort);
+
+  })();
+</script>
+{% endblock %}

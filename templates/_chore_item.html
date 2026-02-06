@@ -7,89 +7,176 @@
   {% endif %}
 {% endfor %}
 
-<div class="homi-chore-card">
+{# Card shading based on assignment #}
+{% set card_class = "" %}
+{% if chore.assigned_to_user_id %}
+  {% if chore.assigned_to_user_id == session.get("user_id") %}
+    {% set card_class = "is-mine" %}
+  {% else %}
+    {% set card_class = "is-theirs" %}
+  {% endif %}
+{% else %}
+  {% set card_class = "is-unassigned" %}
+{% endif %}
+
+{% set can_edit_delete = (chore.assigned_to_user_id == session.get("user_id")) %}
+
+<div class="homi-chore-card {{ card_class }}">
   <div class="homi-chore-left">
-    <!-- Toggle complete -->
-    <form method="POST" action="{{ url_for('main.db_test_toggle', chore_id=chore.id) }}">
-      <button
-        type="submit"
-        class="homi-checkbox-btn {% if chore.completed %}is-done{% endif %}"
-        aria-label="{% if chore.completed %}Mark as not done{% else %}Mark as done{% endif %}"
-        title="{% if chore.completed %}Mark as not done{% else %}Mark as done{% endif %}"
-      >
-        <span class="homi-checkmark" aria-hidden="true"></span>
-      </button>
-    </form>
-
     <div class="homi-chore-main">
-      <div class="homi-chore-title {% if chore.completed %}completed{% endif %}">
-        {{ chore.title }}
-      </div>
 
-      <div class="homi-chore-meta">
-        {% if is_overdue and not chore.completed %}
-          <span class="homi-badge homi-badge-danger">
-            <span class="dot"></span> Overdue
-          </span>
-        {% endif %}
+      <div class="homi-chore-row">
 
-        {% if chore.due_date and not chore.completed %}
-          <span class="homi-badge homi-badge-light">
-            {{ chore.due_date.strftime("%b %d, %Y") }}
-          </span>
-        {% endif %}
+        <!-- LEFT: title + badges + complete button -->
+        <div class="homi-chore-info">
+          <div class="homi-chore-title {% if chore.completed %}completed{% endif %}">
+            {{ chore.title }}
+          </div>
 
-        {% if chore.priority is defined and chore.priority %}
-          <span class="homi-badge homi-badge-warning">
-            {{ chore.priority }} priority
-          </span>
-        {% endif %}
-
-        {# Owner badge (NEW) #}
-        {% if chore.assigned_to_user_id %}
-          {% set owner = users_by_id.get(chore.assigned_to_user_id) %}
-          <span class="homi-badge homi-badge-soft">
-            Assigned to {{ owner.name if owner else "Unknown" }}
-            {% if chore.assigned_to_user_id == session.get('user_id') %}
-              (you)
+          <!-- Meta badges -->
+          <div class="homi-chore-meta mt-1">
+            {% if is_overdue and not chore.completed %}
+              <span class="homi-badge homi-badge-danger">Overdue</span>
             {% endif %}
-          </span>
-        {% else %}
-          <span class="homi-badge homi-badge-soft">
-            Unassigned
-          </span>
-        {% endif %}
+
+            {% if chore.due_date and not chore.completed %}
+              <span class="homi-badge homi-badge-light">
+                {{ chore.due_date.strftime("%b %d, %Y") }}
+              </span>
+            {% endif %}
+
+            {% if chore.assigned_to_user_id %}
+              {% set owner = users_by_id.get(chore.assigned_to_user_id) %}
+
+              {% if chore.assigned_to_user_id == session.get("user_id") %}
+                <span class="homi-badge homi-badge-primary">
+                  Assigned to {{ owner.name }} (you)
+                </span>
+              {% else %}
+                <span class="homi-badge homi-badge-soft">
+                  Assigned to {{ owner.name }}
+                </span>
+              {% endif %}
+            {% else %}
+              <span class="homi-badge homi-badge-soft">Unassigned</span>
+            {% endif %}
+          </div>
+
+          <!-- Mark complete (clean + proportional) -->
+          <form
+            class="mt-2"
+            method="POST"
+            action="{{ url_for('main.db_test_toggle', chore_id=chore.id) }}"
+          >
+            {% if chore.completed %}
+              <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                Undo
+              </button>
+            {% else %}
+              <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
+                Mark complete
+              </button>
+            {% endif %}
+          </form>
+        </div>
+
+        <!-- RIGHT: action buttons right-aligned, vertically aligned with title/meta -->
+        <div class="homi-chore-toolbar">
+          {% if not chore.assigned_to_user_id %}
+            <!-- Assign -->
+            <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=chore.id) }}">
+              <button class="homi-action-btn" type="submit" title="Assign this chore to me">
+                <span class="homi-action-ico" aria-hidden="true">👤</span>
+                <span class="homi-action-label">Assign</span>
+              </button>
+            </form>
+
+          {% elif chore.assigned_to_user_id == session.get("user_id") %}
+
+            <!-- Unassign -->
+            <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=chore.id) }}">
+              <button class="homi-action-btn" type="submit" title="Remove this chore from me">
+                <span class="homi-action-ico" aria-hidden="true">⟲</span>
+                <span class="homi-action-label">Unassign</span>
+              </button>
+            </form>
+
+            <!-- Swap -->
+            <button
+              class="homi-action-btn"
+              data-bs-toggle="modal"
+              data-bs-target="#swapModal{{ chore.id }}"
+              title="Request a chore swap"
+              type="button"
+            >
+              <span class="homi-action-ico" aria-hidden="true">🔁</span>
+              <span class="homi-action-label">Swap</span>
+            </button>
+
+            <!-- Swap modal -->
+            <div class="modal fade" id="swapModal{{ chore.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content homi-modal">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Request chore swap</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+
+                  <form method="POST"
+                        action="{{ url_for('main.request_chore_swap', chore_id=chore.id) }}">
+                    <div class="modal-body">
+                      <label class="form-label">Swap with</label>
+                      <select name="to_user_id" class="form-select" required>
+                        {% for uid, user in users_by_id.items() %}
+                          {% if uid != session.get("user_id") %}
+                            <option value="{{ uid }}">{{ user.name }}</option>
+                          {% endif %}
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="modal-footer">
+                      <button type="button" class="homi-btn homi-btn-ghost" data-bs-dismiss="modal">
+                        Cancel
+                      </button>
+                      <button type="submit" class="homi-btn homi-btn-primary">
+                        Send request
+                      </button>
+                    </div>
+                  </form>
+
+                </div>
+              </div>
+            </div>
+
+          {% endif %}
+
+          {% if can_edit_delete %}
+          <!-- Edit (only if assigned to me) -->
+          <a
+            class="homi-action-btn"
+            href="{{ url_for('main.db_test_edit', chore_id=chore.id) }}"
+            title="Edit this chore"
+          >
+            <span class="homi-action-ico" aria-hidden="true">✎</span>
+            <span class="homi-action-label">Edit</span>
+          </a>
+
+          <!-- Delete (only if assigned to me) -->
+          <form method="POST"
+                action="{{ url_for('main.db_test_delete', chore_id=chore.id) }}"
+                onsubmit="return confirm('Delete this chore?');">
+            <button class="homi-action-btn is-danger" type="submit" title="Delete this chore">
+              <span class="homi-action-ico" aria-hidden="true">🗑</span>
+              <span class="homi-action-label">Delete</span>
+            </button>
+          </form>
+          {% endif %}
+
+        </div>
+
       </div>
+
     </div>
-  </div>
-
-  <!-- Actions -->
-  <div class="homi-chore-actions">
-    {% if not chore.assigned_to_user_id %}
-      <form method="POST" action="{{ url_for('main.db_test_assign', chore_id=chore.id) }}">
-        <button class="homi-icon-btn" type="submit" title="Assign to me" aria-label="Assign to me">
-          👤
-        </button>
-      </form>
-    {% else %}
-      {% if chore.assigned_to_user_id == session.get('user_id') %}
-        <form method="POST" action="{{ url_for('main.db_test_unassign', chore_id=chore.id) }}">
-          <button class="homi-icon-btn" type="submit" title="Unassign" aria-label="Unassign">
-            ⟲
-          </button>
-        </form>
-      {% endif %}
-    {% endif %}
-
-    <a class="homi-icon-btn" href="{{ url_for('main.db_test_edit', chore_id=chore.id) }}" title="Edit" aria-label="Edit">
-      ✎
-    </a>
-
-    <form method="POST" action="{{ url_for('main.db_test_delete', chore_id=chore.id) }}"
-          onsubmit="return confirm('Delete this chore?');">
-      <button class="homi-icon-btn danger" type="submit" title="Delete" aria-label="Delete">
-        🗑
-      </button>
-    </form>
   </div>
 </div>

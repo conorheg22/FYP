@@ -36,3 +36,32 @@ ChatGPT (2025) Help with chore routing. Conversation available at: https://chatg
  (Accessed: 2 November 2025).
 
 Hegarty, C. (2024) Header and Footer Design — IS3312 Project Phase 1. Unpublished student project, University College Cork.
+
+ITERATION 4 - REFERENCES
+•	SQLAlchemy (2023) Basic relationship patterns. Available at:
+https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
+•	SQLAlchemy (2023) Object Relational Tutorial. Available at:
+https://docs.sqlalchemy.org/en/13/orm/tutorial.html
+•	Pallets Projects (2024) Flask templating with Jinja. Available at:
+https://flask.palletsprojects.com/en/stable/templating/
+•	Pallets Projects (2024) Flask quickstart – sessions and templates. Available at:
+https://flask.palletsprojects.com/en/stable/quickstart/
+•	Bootstrap (2024) Layout utilities. Available at:
+https://getbootstrap.com/docs/4.0/layout/utilities-for-layout/
+•	Bootstrap (2024) Cards component. Available at:
+https://getbootstrap.com/docs/5.0/components/card/
+•	Bootstrap (2024) Forms component. Available at:
+https://getbootstrap.com/docs/5.0/components/card/
+•	W3Schools (2024) HTML DOM document.addEventListener() method. Available at:
+https://www.w3schools.com/jsref/met_document_addeventlistener.asp
+•	MDN Web Docs (2024) Document.querySelector(). Available at:
+https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector
+•	DrapsTv (2017) JavaScript Tutorial #9 – DOM & Events. YouTube. Available at:
+https://www.youtube.com/watch?v=xaEO_Rfj_cY
+•	Carlos Salazar (2020) Calendar and date handling in Flask (DatePicker example). YouTube. Available at:
+https://www.youtube.com/watch?v=jAdFZa6KZNE
+•	Tech With Tim (2019) Flask tutorial #6 – Message flashing. YouTube. Available at:
+https://www.youtube.com/watch?v=qbnqNWXf_tU
+•	ChatGPT – Used for flask inventory enhancements: https://chatgpt.com/share/69865b3d-3e40-8007-b7fd-0ff594971ab5
+•	ChatGPT – Flask In-App Notifications: https://chatgpt.com/share/69865e70-4154-8007-b020-98259faaf812
+•	ChatGPT – Calendar Feature: https://chatgpt.com/share/69866053-0d34-8007-9bfa-0f43543abcf2

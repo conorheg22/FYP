@@ -1,0 +1,793 @@
+<!-- Reference: Bootstrap cards
+https://getbootstrap.com/docs/5.0/components/card/ -->
+
+<!-- Reference: Bootstrap forms
+https://getbootstrap.com/docs/4.0/components/forms/ -->
+
+<!-- Inventory dashboard sections (Frequently used / Low stock)
+  Layout and feature idea informed by AI-assisted development discussion.
+  Source: ChatGPT – Inventory UI enhancement prompt (Feb 2026) - https://chatgpt.com/share/69865b3d-3e40-8007-b7fd-0ff594971ab5  -->
+
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+
+  /* Soft page background (kept local to this template) */
+  body {
+    background: #f6f7fb;
+  }
+
+  /* Consistent card styling (reusing my homi-card base) */
+  .inv-card {
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .inv-card:hover {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+    transition: 160ms ease;
+  }
+
+  .inv-muted {
+    color: #6c757d;
+    font-size: 0.92rem;
+  }
+
+  .inv-title {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .inv-section-title {
+    font-weight: 700;
+    font-size: 1.02rem;
+    margin: 0;
+  }
+
+  .inv-pill-tabs {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 6px;
+  }
+
+  .inv-pill-tabs .btn {
+    border-radius: 999px !important;
+    padding: 6px 12px;
+  }
+
+  .inv-kpi-row .badge {
+    font-weight: 600;
+  }
+
+  .inv-quick-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .inv-quick-row:hover {
+    background: #fbfcfe;
+  }
+
+  .inv-quick-left {
+    min-width: 220px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .inv-quick-name {
+    font-weight: 700;
+  }
+
+  .inv-qty {
+    font-size: 0.85rem;
+    background: #f1f3f5;
+    border-radius: 999px;
+    padding: 2px 10px;
+    color: #495057;
+  }
+
+  .inv-qty.inv-qty-zero {
+    background: #f8f9fa;
+    color: #868e96;
+    border: 1px dashed rgba(0,0,0,0.15);
+  }
+
+  .inv-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .inv-actions .btn,
+  .inv-actions .homi-btn {
+    white-space: nowrap;
+  }
+
+  /* Item list cards */
+  .inv-item {
+    padding: 14px;
+  }
+
+  .inv-item + .inv-item {
+    margin-top: 12px;
+  }
+
+  .inv-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .inv-item-name {
+    font-weight: 800;
+    font-size: 1rem;
+  }
+
+  .inv-meta {
+    font-size: 0.86rem;
+    color: #6c757d;
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+  }
+
+  .inv-meta .dot {
+    opacity: 0.6;
+  }
+
+  .inv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f3f5;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.82rem;
+    color: #495057;
+  }
+
+  .inv-chip strong {
+    font-weight: 700;
+  }
+
+  .inv-status {
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+  }
+
+  .inv-status.ok { background: rgba(25, 135, 84, 0.12); color: #146c43; }
+  .inv-status.warn { background: rgba(255, 193, 7, 0.18); color: #8a6d00; }
+  .inv-status.bad { background: rgba(220, 53, 69, 0.14); color: #b02a37; }
+  .inv-status.zero { background: rgba(108, 117, 125, 0.14); color: #495057; }
+
+  /* Embedded edit panel */
+  .inv-edit-panel {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .inv-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .inv-edit-header .title {
+    font-weight: 800;
+  }
+
+  /* Search + sort controls */
+  .inv-controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .inv-search {
+    max-width: 320px;
+  }
+
+  /* Improve focus visibility without changing theme globally */
+  .btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible, .homi-btn:focus-visible {
+    outline: 2px solid rgba(13, 110, 253, 0.35);
+    outline-offset: 2px;
+  }
+
+  /* Mobile comfort */
+  @media (max-width: 576px) {
+    .inv-search { max-width: 100%; }
+    .inv-quick-left { min-width: 0; }
+  }
+</style>
+
+<div class="container py-4">
+
+  <!-- Header + filter “tabs” -->
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+    <div>
+      <h2 class="inv-title mb-1">Inventory</h2>
+      <div class="inv-muted">
+        Track shared supplies, avoid duplicates, and keep an eye on expiry.
+      </div>
+    </div>
+
+    <!-- Segmented controls (tabs-like) -->
+    <div class="d-flex align-items-center inv-pill-tabs">
+      <a
+        class="btn btn-sm {% if active_filter=='all' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        href="{{ url_for('main.inventory_list', filter='all') }}"
+        {% if active_filter=='all' %}aria-current="page"{% endif %}
+      >
+        All
+      </a>
+
+      <a
+        class="btn btn-sm {% if active_filter=='expiring' %}btn-warning{% else %}btn-outline-warning{% endif %}"
+        href="{{ url_for('main.inventory_list', filter='expiring') }}"
+        {% if active_filter=='expiring' %}aria-current="page"{% endif %}
+      >
+        Expiring
+      </a>
+
+      <a
+        class="btn btn-sm {% if active_filter=='expired' %}btn-danger{% else %}btn-outline-danger{% endif %}"
+        href="{{ url_for('main.inventory_list', filter='expired') }}"
+        {% if active_filter=='expired' %}aria-current="page"{% endif %}
+      >
+        Expired
+      </a>
+    </div>
+  </div>
+
+  {# Only show dashboards + add item when viewing "All" #}
+  {% if active_filter == "all" %}
+
+    <!-- Quick dashboards -->
+    <div class="row g-3 mb-3">
+      <!-- Frequently used -->
+      <div class="col-12 col-lg-6">
+        <div class="homi-card inv-card p-3">
+          <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+            <div>
+              <h5 class="inv-section-title">Frequently used</h5>
+              <div class="inv-muted">Quick actions for items you touch often.</div>
+            </div>
+            {% if frequent_items %}
+              <span class="badge text-bg-light">{{ frequent_items|length }} shown</span>
+            {% endif %}
+          </div>
+
+          {% if frequent_items %}
+            <div class="d-flex flex-column gap-2 mt-3">
+              {% for item in frequent_items %}
+                <div class="inv-quick-row" role="group" aria-label="Frequently used item actions">
+                  <div class="inv-quick-left">
+                    <span class="inv-quick-name">{{ item.name }}</span>
+                    <span class="inv-qty {% if item.quantity == 0 %}inv-qty-zero{% endif %}">
+                      Qty: <strong>{{ item.quantity }}</strong>
+                      {% if item.unit %} {{ item.unit }}{% endif %}
+                    </span>
+                  </div>
+
+                  <div class="inv-actions">
+                    <form method="POST" action="{{ url_for('main.inventory_use', item_id=item.id) }}" class="m-0">
+                      <button type="submit" class="btn btn-sm btn-outline-primary" aria-label="Use {{ item.name }}">
+                        ⟲ Use
+                      </button>
+                    </form>
+
+                    <a href="{{ url_for('main.inventory_list', filter='all') }}#item-{{ item.id }}"
+                       class="btn btn-sm btn-outline-secondary"
+                       aria-label="Edit {{ item.name }}">
+                      ✎ Edit
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="inv-muted mt-3">
+              No frequent items yet. As you use or edit items, they’ll appear here.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Low stock -->
+      <div class="col-12 col-lg-6">
+        <div class="homi-card inv-card p-3">
+          <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+            <div>
+              <h5 class="inv-section-title">Low stock</h5>
+              <div class="inv-muted">Items running low (helpful for restocking).</div>
+            </div>
+            {% if low_stock_items %}
+              <span class="badge text-bg-warning">Needs attention</span>
+            {% endif %}
+          </div>
+
+          {% if low_stock_items %}
+            <div class="d-flex flex-column gap-2 mt-3">
+              {% for item in low_stock_items %}
+                <div class="inv-quick-row" role="group" aria-label="Low stock item actions">
+                  <div class="inv-quick-left">
+                    <span class="inv-quick-name">{{ item.name }}</span>
+                    <span class="inv-qty {% if item.quantity == 0 %}inv-qty-zero{% endif %}">
+                      Qty: <strong>{{ item.quantity }}</strong>
+                      {% if item.unit %} {{ item.unit }}{% endif %}
+                    </span>
+                    {% if item.quantity == 0 %}
+                      <span class="inv-status zero">Out of stock</span>
+                    {% endif %}
+                  </div>
+
+                  <div class="inv-actions">
+                    {% if item.quantity > 0 %}
+                      <form method="POST" action="{{ url_for('main.inventory_use', item_id=item.id) }}" class="m-0">
+                        <button type="submit" class="btn btn-sm btn-outline-warning" aria-label="Use {{ item.name }}">
+                          ⟲ Use
+                        </button>
+                      </form>
+                    {% else %}
+                      <span class="inv-muted" aria-label="Cannot use; quantity is zero">No uses left</span>
+                    {% endif %}
+
+                    <a href="{{ url_for('main.inventory_list', filter='all') }}#item-{{ item.id }}"
+                       class="btn btn-sm btn-outline-secondary"
+                       aria-label="Edit {{ item.name }}">
+                      ✎ Edit
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="inv-muted mt-3">
+              Everything looks stocked up. Nice!
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Add item (lighter + secondary) -->
+    <div class="homi-card inv-card p-3 mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="inv-section-title mb-1">Add item</h5>
+          <div class="inv-muted">Tip: set expiry dates for perishables.</div>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('main.inventory_add') }}" class="row g-3 mt-2">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_name">Name</label>
+          <input id="inv_add_name" class="form-control" name="name" placeholder="e.g., Milk" required>
+        </div>
+
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="inv_add_qty">Quantity</label>
+          <input id="inv_add_qty" class="form-control" name="quantity" type="number" min="0" value="1">
+        </div>
+
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="inv_add_unit">Unit</label>
+          <input id="inv_add_unit" class="form-control" name="unit" placeholder="e.g., packs / litres">
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_notes">Notes</label>
+          <input id="inv_add_notes" class="form-control" name="notes" placeholder="Optional (brand, size, etc.)">
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_category">Category</label>
+          <select id="inv_add_category" class="form-select" name="category">
+            <option value="">—</option>
+            {% for c in categories %}
+              <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_subcat">Sub-category</label>
+          <input id="inv_add_subcat" class="form-control" name="sub_category" placeholder="e.g., Dairy / Snacks">
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_location">Location</label>
+          <select id="inv_add_location" class="form-select" name="location">
+            <option value="">—</option>
+            {% for l in locations %}
+              <option value="{{ l }}">{{ l }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label" for="inv_add_exp_type">Expiry type</label>
+          <select id="inv_add_exp_type" class="form-select" name="expiry_type">
+            <option value="">—</option>
+            <option value="best_before">Best-before</option>
+            <option value="use_by">Use-by</option>
+          </select>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label" for="inv_add_exp_date">Expiry date</label>
+          <input id="inv_add_exp_date" class="form-control" name="expiry_date" type="date">
+        </div>
+
+        <div class="col-12 col-md-6 d-flex align-items-end justify-content-end">
+          <button class="homi-btn homi-btn-primary" type="submit">
+            Add to inventory
+          </button>
+        </div>
+      </form>
+    </div>
+
+  {% endif %}
+
+  <!-- Items list header + controls -->
+  <div class="inv-controls mb-2">
+    <div>
+      <h5 class="inv-section-title mb-1">Items</h5>
+      <div class="inv-muted">
+        <span id="invCount">{{ items|length }}</span> item(s)
+      </div>
+
+      {% if active_filter != "all" %}
+        <div class="inv-muted mt-1">
+          Showing <strong>{{ active_filter }}</strong> items only.
+          <a href="{{ url_for('main.inventory_list', filter='all') }}">Clear filter</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <input
+        id="invSearch"
+        type="search"
+        class="form-control inv-search"
+        placeholder="Search items…"
+        aria-label="Search inventory"
+      >
+
+      <select id="invSort" class="form-select" style="max-width: 200px;" aria-label="Sort inventory items">
+        <option value="name_asc" selected>Sort: Name (A–Z)</option>
+        <option value="name_desc">Sort: Name (Z–A)</option>
+        <option value="expiry_asc">Sort: Expiry (soonest)</option>
+        <option value="expiry_desc">Sort: Expiry (latest)</option>
+        <option value="qty_asc">Sort: Quantity (low→high)</option>
+        <option value="qty_desc">Sort: Quantity (high→low)</option>
+      </select>
+    </div>
+  </div>
+
+  {% if not items %}
+    <div class="homi-card inv-card p-3">
+      <div class="inv-muted">
+        Nothing to show for this filter. Try switching to <strong>All</strong>.
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Items list -->
+  <div id="invList" class="d-flex flex-column">
+    {% for item in items %}
+      {% set d = days_to_expiry.get(item.id) %}
+
+      <div
+        class="homi-card inv-card inv-item"
+        id="item-{{ item.id }}"
+        data-item
+        data-item-name="{{ item.name | lower }}"
+        data-item-qty="{{ item.quantity }}"
+        data-item-expiry="{% if d is not none %}{{ d }}{% else %}999999{% endif %}"
+      >
+        <div class="inv-item-top">
+          <div style="min-width: 240px;">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <div class="inv-item-name">{{ item.name }}</div>
+
+              {% if item.quantity == 0 %}
+                <span class="inv-status zero">Out of stock</span>
+              {% endif %}
+
+              {% if item.expiry_date %}
+                {% if d is not none and d < 0 %}
+                  <span class="inv-status bad">Expired</span>
+                {% elif d is not none and d <= 3 %}
+                  <span class="inv-status warn">Use soon</span>
+                {% elif d is not none and d <= 7 %}
+                  <span class="inv-status warn">Expiring</span>
+                {% else %}
+                  <span class="inv-status ok">OK</span>
+                {% endif %}
+              {% endif %}
+            </div>
+
+            <div class="inv-meta">
+              <span class="inv-chip">Qty <strong>{{ item.quantity }}</strong>{% if item.unit %} {{ item.unit }}{% endif %}</span>
+
+              {% if item.location %}
+                <span class="inv-chip">📍 <strong>{{ item.location }}</strong></span>
+              {% endif %}
+
+              {% if item.category %}
+                <span class="inv-chip">🏷️ <strong>{{ item.category }}</strong>{% if item.sub_category %} / {{ item.sub_category }}{% endif %}</span>
+              {% endif %}
+
+              {% if item.expiry_date %}
+                <span class="inv-chip">
+                  {% if item.expiry_type == "use_by" %}
+                    ⏳ Use-by
+                  {% elif item.expiry_type == "best_before" %}
+                    ⏳ Best-before
+                  {% else %}
+                    ⏳ Expiry
+                  {% endif %}
+                  <strong>{{ item.expiry_date }}</strong>
+                  {% if d is not none %}
+                    <span class="dot">•</span>
+                    {% if d < 0 %}
+                      {{ (-d) }} day(s) ago
+                    {% else %}
+                      {{ d }} day(s) left
+                    {% endif %}
+                  {% endif %}
+                </span>
+              {% endif %}
+
+              {% if item.notes %}
+                <span class="inv-chip">📝 <strong>{{ item.notes }}</strong></span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="inv-actions">
+            <form method="POST" action="{{ url_for('main.inventory_use', item_id=item.id) }}" class="m-0">
+              <button type="submit" class="btn btn-sm btn-outline-primary" title="Record one use (decrement quantity by 1)">
+                ⟲ Use
+              </button>
+            </form>
+
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#editItem{{ item.id }}"
+              aria-expanded="false"
+              aria-controls="editItem{{ item.id }}"
+              title="Edit item"
+            >
+              ✎ Edit
+            </button>
+
+            <form method="POST" action="{{ url_for('main.inventory_delete', item_id=item.id) }}" class="m-0">
+              <button
+                class="btn btn-sm btn-outline-danger"
+                type="submit"
+                onclick="return confirm('Delete this inventory item?');"
+                title="Delete item"
+              >
+                🗑 Delete
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="collapse inv-edit-panel" id="editItem{{ item.id }}">
+          <div class="inv-edit-header">
+            <div class="title">Edit item</div>
+
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              data-bs-toggle="collapse"
+              data-bs-target="#editItem{{ item.id }}"
+              aria-controls="editItem{{ item.id }}"
+            >
+              ✕ Close
+            </button>
+          </div>
+
+          <form method="POST" action="{{ url_for('main.inventory_edit', item_id=item.id) }}" class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="inv_name_{{ item.id }}">Name</label>
+              <input id="inv_name_{{ item.id }}" class="form-control" name="name" value="{{ item.name }}" required>
+            </div>
+
+            <div class="col-6 col-md-2">
+              <label class="form-label" for="inv_qty_{{ item.id }}">Quantity</label>
+              <input id="inv_qty_{{ item.id }}" class="form-control" name="quantity" type="number" min="0" value="{{ item.quantity }}">
+            </div>
+
+            <div class="col-6 col-md-2">
+              <label class="form-label" for="inv_unit_{{ item.id }}">Unit</label>
+              <input id="inv_unit_{{ item.id }}" class="form-control" name="unit" value="{{ item.unit or '' }}" placeholder="Unit">
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="inv_notes_{{ item.id }}">Notes</label>
+              <input id="inv_notes_{{ item.id }}" class="form-control" name="notes" value="{{ item.notes or '' }}" placeholder="Notes">
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="inv_cat_{{ item.id }}">Category</label>
+              <select id="inv_cat_{{ item.id }}" class="form-select" name="category">
+                <option value="">—</option>
+                {% for c in categories %}
+                  <option value="{{ c }}" {% if item.category == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="inv_subcat_{{ item.id }}">Sub-category</label>
+              <input id="inv_subcat_{{ item.id }}" class="form-control" name="sub_category" value="{{ item.sub_category or '' }}">
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="inv_loc_{{ item.id }}">Location</label>
+              <select id="inv_loc_{{ item.id }}" class="form-select" name="location">
+                <option value="">—</option>
+                {% for l in locations %}
+                  <option value="{{ l }}" {% if item.location == l %}selected{% endif %}>{{ l }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-6 col-md-3">
+              <label class="form-label" for="inv_exp_type_{{ item.id }}">Expiry type</label>
+              <select id="inv_exp_type_{{ item.id }}" class="form-select" name="expiry_type">
+                <option value="">—</option>
+                <option value="best_before" {% if item.expiry_type=="best_before" %}selected{% endif %}>Best-before</option>
+                <option value="use_by" {% if item.expiry_type=="use_by" %}selected{% endif %}>Use-by</option>
+              </select>
+            </div>
+
+            <div class="col-6 col-md-3">
+              <label class="form-label" for="inv_exp_date_{{ item.id }}">Expiry date</label>
+              <input
+                id="inv_exp_date_{{ item.id }}"
+                class="form-control"
+                name="expiry_date"
+                type="date"
+                value="{% if item.expiry_date %}{{ item.expiry_date }}{% endif %}"
+              >
+            </div>
+
+            <div class="col-12 d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                data-bs-toggle="collapse"
+                data-bs-target="#editItem{{ item.id }}"
+                aria-controls="editItem{{ item.id }}"
+              >
+                Cancel
+              </button>
+
+              <button class="homi-btn homi-btn-primary" type="submit">
+                Save changes
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+  // ---------------------------------------------------------
+  // Client-side UX enhancements (non-invasive)
+  // - Search filters items client-side
+  // - Sort dropdown sorts existing DOM items
+  // - Preserves all backend routes + behavior
+  // ---------------------------------------------------------
+  (function () {
+    const searchInput = document.getElementById("invSearch");
+    const sortSelect = document.getElementById("invSort");
+    const list = document.getElementById("invList");
+    const countEl = document.getElementById("invCount");
+
+    function getItems() {
+      return Array.from(list.querySelectorAll("[data-item]"));
+    }
+
+    function updateCount() {
+      const visible = getItems().filter(el => el.style.display !== "none").length;
+      if (countEl) countEl.textContent = visible;
+    }
+
+    function applySearch() {
+      const q = (searchInput.value || "").trim().toLowerCase();
+      getItems().forEach(el => {
+        const name = el.getAttribute("data-item-name") || "";
+        el.style.display = name.includes(q) ? "" : "none";
+      });
+      updateCount();
+    }
+
+    function applySort() {
+      const mode = sortSelect.value;
+      const items = getItems();
+
+      const getName = (el) => (el.getAttribute("data-item-name") || "");
+      const getQty = (el) => parseInt(el.getAttribute("data-item-qty") || "0", 10);
+      const getExp = (el) => parseInt(el.getAttribute("data-item-expiry") || "999999", 10);
+
+      const cmp = {
+        name_asc:  (a,b) => getName(a).localeCompare(getName(b)),
+        name_desc: (a,b) => getName(b).localeCompare(getName(a)),
+        qty_asc:   (a,b) => getQty(a) - getQty(b),
+        qty_desc:  (a,b) => getQty(b) - getQty(a),
+        expiry_asc:(a,b) => getExp(a) - getExp(b),
+        expiry_desc:(a,b)=> getExp(b) - getExp(a),
+      }[mode];
+
+      if (!cmp) return;
+
+      items.sort(cmp).forEach(el => list.appendChild(el));
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("input", applySearch);
+    }
+    if (sortSelect) {
+      sortSelect.addEventListener("change", function () {
+        applySort();
+        applySearch();
+      });
+    }
+
+    // Hash → auto-open edit (keep your existing behavior)
+    (function () {
+      var hash = window.location.hash;
+      if (hash && hash.indexOf('item-') === 1) {
+        var id = hash.replace('item-', '');
+        var collapseEl = document.getElementById('editItem' + id);
+        if (collapseEl) {
+          var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, { toggle: false });
+          bsCollapse.show();
+        }
+      }
+    })();
+
+    updateCount();
+  })();
+</script>
+{% endblock %}

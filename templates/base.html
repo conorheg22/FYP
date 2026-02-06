@@ -25,6 +25,60 @@
     >
   </head>
 
+    <!-- Toast container -->
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3"></div>
+
+    <script>
+    async function loadNotifications() {
+      const res = await fetch("/api/notifications/unread");
+      const data = await res.json();
+
+      for (const n of data.notifications) {
+        showToast(n);
+      }
+    }
+
+    function showToast(n) {
+      const container = document.querySelector(".toast-container");
+
+      const toast = document.createElement("div");
+      toast.className = "toast show mb-2";
+      toast.innerHTML = `
+        <div class="toast-header">
+          <strong class="me-auto">${n.title}</strong>
+          <button type="button" class="btn-close"></button>
+        </div>
+        <div class="toast-body">
+          ${n.message}
+        </div>
+      `;
+
+      toast.onclick = () => {
+        if (n.link_url) window.location = n.link_url;
+        markRead(n.id);
+      };
+
+      toast.querySelector(".btn-close").onclick = (e) => {
+        e.stopPropagation();
+        markRead(n.id);
+        toast.remove();
+      };
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        markRead(n.id);
+        toast.remove();
+      }, 6000);
+    }
+
+    function markRead(id) {
+      fetch(`/api/notifications/${id}/read`, { method: "POST" });
+    }
+
+    document.addEventListener("DOMContentLoaded", loadNotifications);
+    </script>
+
   <body>
     <!-- HEADER / NAVBAR -->
     <header class="homi">
@@ -74,11 +128,26 @@
                   </a>
                 </li>
 
+                <!-- Inventory -->
+                <li class="nav-item">
+                  <a class="nav-link {% if request.path.startswith('/inventory') %}active{% endif %}"
+                     href="{{ url_for('main.inventory_list') }}">
+                    Inventory
+                  </a>
+                </li>
+
                 <!-- Expenses -->
                 <li class="nav-item">
                   <a class="nav-link {% if request.path.startswith('/expenses') %}active{% endif %}"
                      href="{{ url_for('main.expenses') }}">
                     Expenses
+                  </a>
+                </li>
+
+                <li class="nav-item">
+                  <a class="nav-link {% if request.path.startswith('/calendar') %}active{% endif %}"
+                     href="{{ url_for('main.calendar_view') }}">
+                    Calendar
                   </a>
                 </li>
 

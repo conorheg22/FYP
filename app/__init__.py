@@ -56,6 +56,11 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", default_sqlite)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # Email (Brevo)
+    app.config["BREVO_API_KEY"] = os.getenv("BREVO_API_KEY", "")
+    app.config["BREVO_SENDER_EMAIL"] = os.getenv("BREVO_SENDER_EMAIL", "")
+    app.config["BREVO_SENDER_NAME"] = os.getenv("BREVO_SENDER_NAME", "HOMI")
+
     # (Optional) Debug prints — remove once everything is working
     print("Instance path:", app.instance_path)
     print("DB URI:", app.config["SQLALCHEMY_DATABASE_URI"])

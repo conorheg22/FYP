@@ -6,7 +6,7 @@
 <div class="homi-shell">
   <div class="homi-container">
 
-    <!-- Page header (Expenses-like) -->
+    <!-- Page header -->
     <div class="homi-header">
       <div>
         <h1 class="homi-title">Chores</h1>
@@ -19,13 +19,102 @@
       </button>
     </div>
 
+<!-- Pending Swap Requests -->
+{% if pending_swaps %}
+  <div class="homi-card mb-4" style="padding: 18px;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <div style="
+          width: 38px; height: 38px; border-radius: 12px;
+          display:flex; align-items:center; justify-content:center;
+          background: rgba(99,102,241,0.12);
+          font-size: 18px;
+        ">🔁</div>
+
+        <div>
+          <div style="font-weight: 800; font-size: 18px; line-height: 1.1;">
+            Swap requests
+            <span style="
+              margin-left: 8px;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              padding: 2px 10px;
+              border-radius: 999px;
+              font-size: 12px;
+              font-weight: 700;
+              background: rgba(99,102,241,0.14);
+              color: #4f46e5;
+            ">
+              {{ pending_swaps|length }}
+            </span>
+          </div>
+          <div class="text-muted" style="font-size: 13px;">
+            Accept to take the chore, or decline to keep things as-is.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3" style="display:flex; flex-direction:column; gap:10px;">
+      {% for swap in pending_swaps %}
+        <div style="
+          border: 1px solid rgba(0,0,0,0.06);
+          border-radius: 14px;
+          padding: 12px 14px;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 12px;
+          background: rgba(255,255,255,0.8);
+        ">
+          <div style="min-width: 0;">
+            <div style="font-weight: 700;">
+              {{ swap.from_user.name }}
+              <span class="text-muted" style="font-weight: 500;">wants you to take</span>
+              <span style="
+                display:inline-block;
+                padding: 2px 8px;
+                border-radius: 999px;
+                background: rgba(0,0,0,0.04);
+                font-weight: 700;
+              ">
+                {{ swap.offered_chore.title }}
+              </span>
+            </div>
+            <div class="text-muted" style="font-size: 12.5px; margin-top: 2px;">
+              Request received: {{ swap.created_at.strftime("%d %b %Y, %H:%M") if swap.created_at else "just now" }}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 flex-shrink-0">
+            <form method="POST" action="{{ url_for('main.accept_chore_swap', swap_id=swap.id) }}">
+              <button class="homi-btn homi-btn-primary homi-btn-sm" type="submit">
+                Accept
+              </button>
+            </form>
+
+            <form method="POST" action="{{ url_for('main.decline_chore_swap', swap_id=swap.id) }}">
+              <button class="homi-btn homi-btn-ghost homi-btn-sm" type="submit">
+                Decline
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+
     <!-- Fairness / Distribution -->
     <div class="card homi mb-4 p-3">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
           <h5 class="mb-1">Chore Distribution</h5>
           <div class="text-muted">
-            Active chores per person (fairness view). Unassigned: <strong>{{ unassigned_count }}</strong>
+            Active chores per person (fairness view). Unassigned:
+            <strong>{{ unassigned_count }}</strong>
           </div>
         </div>
 
@@ -50,7 +139,7 @@
                   {% if max_count > 0 %}
                     {% set pct = (d.count / max_count * 100) %}
                   {% endif %}
-                  <div class="progress-bar" role="progressbar" style="width: {{ pct }}%;"></div>
+                  <div class="progress-bar" style="width: {{ pct }}%;"></div>
                 </div>
                 <div class="fw-bold" style="width: 32px; text-align:right;">
                   {{ d.count }}
@@ -84,17 +173,17 @@
 
     <!-- Tabs -->
     <div class="homi-tabs">
-      <button class="homi-tab active" type="button" data-target="#tab-all">
-        All Active <span class="homi-tab-count">({{ active_chores|length }})</span>
+      <button class="homi-tab active" data-target="#tab-all">
+        All Active ({{ active_chores|length }})
       </button>
-      <button class="homi-tab" type="button" data-target="#tab-mine">
-        My Chores <span class="homi-tab-count">({{ my_active|length }})</span>
+      <button class="homi-tab" data-target="#tab-mine">
+        My Chores ({{ my_active|length }})
       </button>
-      <button class="homi-tab" type="button" data-target="#tab-unassigned">
-        Unassigned <span class="homi-tab-count">({{ unassigned_active|length }})</span>
+      <button class="homi-tab" data-target="#tab-unassigned">
+        Unassigned ({{ unassigned_active|length }})
       </button>
-      <button class="homi-tab" type="button" data-target="#tab-completed">
-        Completed <span class="homi-tab-count">({{ completed_chores|length }})</span>
+      <button class="homi-tab" data-target="#tab-completed">
+        Completed ({{ completed_chores|length }})
       </button>
     </div>
 
@@ -102,69 +191,41 @@
     <div class="homi-card">
 
       <div class="homi-panel active" id="tab-all">
-        {% if active_chores|length == 0 %}
-          <div class="homi-empty">
-            <div class="homi-empty-title">No active chores</div>
-            <div class="homi-empty-text">Add a chore to get started.</div>
-          </div>
-        {% else %}
-          <div class="homi-chore-list">
-            {% for chore in overdue_chores %}
-              {% include "_chore_item.html" %}
-            {% endfor %}
-            {% for chore in upcoming_chores %}
-              {% include "_chore_item.html" %}
-            {% endfor %}
-            {% for chore in no_date_chores %}
-              {% include "_chore_item.html" %}
-            {% endfor %}
-          </div>
-        {% endif %}
+        <div class="homi-chore-list">
+          {% for chore in overdue_chores %}
+            {% include "_chore_item.html" %}
+          {% endfor %}
+          {% for chore in upcoming_chores %}
+            {% include "_chore_item.html" %}
+          {% endfor %}
+          {% for chore in no_date_chores %}
+            {% include "_chore_item.html" %}
+          {% endfor %}
+        </div>
       </div>
 
       <div class="homi-panel" id="tab-mine">
-        {% if my_active|length == 0 %}
-          <div class="homi-empty">
-            <div class="homi-empty-title">No chores assigned to you</div>
-            <div class="homi-empty-text">Assign a chore to yourself from “All Active”.</div>
-          </div>
-        {% else %}
-          <div class="homi-chore-list">
-            {% for chore in my_active %}
-              {% include "_chore_item.html" %}
-            {% endfor %}
-          </div>
-        {% endif %}
+        <div class="homi-chore-list">
+          {% for chore in my_active %}
+            {% include "_chore_item.html" %}
+          {% endfor %}
+        </div>
       </div>
 
       <div class="homi-panel" id="tab-unassigned">
-        {% if unassigned_active|length == 0 %}
-          <div class="homi-empty">
-            <div class="homi-empty-title">No unassigned chores</div>
-            <div class="homi-empty-text">Nice — everything is owned by someone.</div>
-          </div>
-        {% else %}
-          <div class="homi-chore-list">
-            {% for chore in unassigned_active %}
-              {% include "_chore_item.html" %}
-            {% endfor %}
-          </div>
-        {% endif %}
+        <div class="homi-chore-list">
+          {% for chore in unassigned_active %}
+            {% include "_chore_item.html" %}
+          {% endfor %}
+        </div>
       </div>
 
       <div class="homi-panel" id="tab-completed">
-        {% if completed_chores|length == 0 %}
-          <div class="homi-empty">
-            <div class="homi-empty-title">No completed chores</div>
-            <div class="homi-empty-text">Completed items will appear here.</div>
-          </div>
-        {% else %}
-          <div class="homi-chore-list">
-            {% for chore in completed_chores %}
-              {% include "_chore_item.html" %}
-            {% endfor %}
-          </div>
-        {% endif %}
+        <div class="homi-chore-list">
+          {% for chore in completed_chores %}
+            {% include "_chore_item.html" %}
+          {% endfor %}
+        </div>
       </div>
 
     </div>
@@ -172,53 +233,51 @@
 </div>
 
 <!-- Add Chore Modal -->
-<div class="modal fade" id="addChoreModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="addChoreModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content homi-modal">
       <div class="modal-header">
         <h5 class="modal-title">Add chore</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <form method="POST" action="{{ url_for('main.db_test_add') }}">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Chore name</label>
-            <input class="form-control homi-input" name="title" placeholder="e.g. Windows" required>
+            <input class="form-control homi-input" name="title" required>
           </div>
           <div class="mb-2">
             <label class="form-label">Due date (optional)</label>
             <input class="form-control homi-input" type="date" name="due_date">
           </div>
-          <div class="small text-muted">
-            Tip: You can assign chores after creating them.
-          </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="homi-btn homi-btn-ghost" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="homi-btn homi-btn-primary">Add</button>
+          <button type="button" class="homi-btn homi-btn-ghost" data-bs-dismiss="modal">
+            Cancel
+          </button>
+          <button type="submit" class="homi-btn homi-btn-primary">
+            Add
+          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Tabs script -->
 <script>
   (function () {
     const tabs = document.querySelectorAll(".homi-tab");
     const panels = document.querySelectorAll(".homi-panel");
 
-    tabs.forEach((tab) => {
+    tabs.forEach(tab => {
       tab.addEventListener("click", () => {
-        tabs.forEach((t) => t.classList.remove("active"));
-        panels.forEach((p) => p.classList.remove("active"));
+        tabs.forEach(t => t.classList.remove("active"));
+        panels.forEach(p => p.classList.remove("active"));
 
         tab.classList.add("active");
-        const target = tab.getAttribute("data-target");
-        const panel = document.querySelector(target);
-        if (panel) panel.classList.add("active");
+        document.querySelector(tab.dataset.target).classList.add("active");
       });
     });
   })();
