@@ -80,6 +80,10 @@ def create_app():
 
     with app.app_context():
         from flask_migrate import upgrade
-        upgrade()
+        try:
+            upgrade()
+        except Exception as e:
+            print(f"Migration failed, attempting db.create_all(): {e}")
+            db.create_all()
 
     return app
