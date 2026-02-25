@@ -11,18 +11,22 @@ Defines the main entities:
 - InventoryItem: shared supplies / inventory items for a household
 """
 
+# We need datetime for default timestamps and Werkzeug for safe password hashing.
 from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
+# db is the SQLAlchemy instance from __init__.py; we use it to define tables and columns.
 from . import db
 
 
 # ---------------------------------------------------------
 # Household
 # ---------------------------------------------------------
+# A household is one group (e.g. a flat or family) that shares chores, expenses, and inventory.
 class Household(db.Model):
     """I use this model to represent a household that shares chores, expenses, and inventory."""
     __tablename__ = "household"
 
+    # Each household has a unique id, a name, an optional address, and a unique code so others can join.
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     address = db.Column(db.String(255))
@@ -43,12 +47,41 @@ class Household(db.Model):
         cascade="all, delete-orphan",
     )
 
+    # Shared shopping list for the household (all members see the same list).
+    shopping_list_items = db.relationship(
+        "ShoppingListItem",
+        backref="household",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+
     # I keep swap requests linked to the household for cleanup and navigation.
     swap_requests = db.relationship(
         "ChoreSwapRequest",
         backref="household",
         lazy=True,
         cascade="all, delete-orphan",
+    )
+
+    # Leaderboard: optional reward for the weekly leader (pre-made or custom).
+    selected_leader_reward_id = db.Column(
+        db.Integer,
+        db.ForeignKey("leaderboard_reward.id"),
+        nullable=True,
+        index=True,
+    )
+    selected_leader_reward = db.relationship(
+        "LeaderboardReward",
+        foreign_keys=[selected_leader_reward_id],
+        uselist=False,
+    )
+
+    # Custom rewards created by this household (pre-made rewards have household_id=None).
+    leaderboard_rewards = db.relationship(
+        "LeaderboardReward",
+        backref="household",
+        lazy=True,
+        foreign_keys="LeaderboardReward.household_id",
     )
 
     # IMPORTANT:
@@ -64,15 +97,30 @@ class Household(db.Model):
 # ---------------------------------------------------------
 # User
 # ---------------------------------------------------------
+# A user is one person with an account. They can belong to one household and have points and streaks from doing chores.
 class User(db.Model):
     """I use this model to represent a registered user account."""
     __tablename__ = "user"
 
+    # Basic account info: id, name, email (unique), and a hashed password so we never store the real password.
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Optional role shown on profile (e.g. "Member", "Admin"); not used for permissions in this app.
+    role = db.Column(db.String(40), nullable=True)
+    # Points and streak are used for the leaderboard; they increase when the user completes chores.
+    points = db.Column(db.Integer, default=0)
+    streak_count = db.Column(db.Integer, default=0)
+    last_streak_date = db.Column(db.Date, nullable=True)
+    # Profile extras: avatar image filename, exam mode flag, dietary/cleaning/availability notes, and whether notifications are on.
+    avatar_filename = db.Column(db.String(255))
+    exam_mode = db.Column(db.Boolean, default=False)
+    dietary_restrictions = db.Column(db.Text)
+    cleaning_preferences = db.Column(db.Text)
+    availability_notes = db.Column(db.Text)
+    notifications_enabled = db.Column(db.Boolean, default=True)
 
     # This links the user to the household they belong to.
     household_id = db.Column(
@@ -149,16 +197,22 @@ class User(db.Model):
 # ---------------------------------------------------------
 # Chore
 # ---------------------------------------------------------
+# Allowed values for repeat_type so we can validate and create the next due date when a chore is completed.
+CHORE_REPEAT_TYPES = ("none", "daily", "weekly", "monthly")
+
+
+# A chore is one task in a household. It can be assigned to a user, have a due date, and repeat daily, weekly, or monthly.
 class Chore(db.Model):
     """I use this model to represent a single chore inside a household."""
     __tablename__ = "chore"
 
+    # Core fields: id, title, whether it is done, and when it was created.
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # This links the chore to its household.
+    # Which household this chore belongs to.
     household_id = db.Column(
         db.Integer,
         db.ForeignKey("household.id"),
@@ -176,20 +230,45 @@ class Chore(db.Model):
 
     # I use this date to track deadlines and calendar events.
     due_date = db.Column(db.Date, nullable=True)
+    # When and who completed this chore (for points, streaks, and "completed by" display).
+    completed_at = db.Column(db.DateTime, nullable=True)
+    completed_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=True,
+        index=True,
+    )
+    # Points awarded for this completion (so we can show "earned +10" and deduct on undo).
+    points_awarded = db.Column(db.Integer, nullable=True)
+
+    # Recurring: "none" (default), "daily", "weekly", "monthly". When completed, a new chore is created with next due date.
+    repeat_type = db.Column(db.String(20), nullable=False, default="none")
+    # Estimated time in minutes (for workload/fairness view).
+    estimated_minutes = db.Column(db.Integer, nullable=True)
+    # True if the chore was completed after its due_date (for overdue stats).
+    was_overdue = db.Column(db.Boolean, default=False, nullable=False)
+
+    completed_by = db.relationship(
+        "User",
+        foreign_keys=[completed_by_id],
+        backref="chores_completed",
+    )
 
 
 # ---------------------------------------------------------
 # Expense
 # ---------------------------------------------------------
+# An expense is one shared cost (e.g. groceries) paid by one person and split between household members.
 class Expense(db.Model):
     """I use this model to represent a shared household expense."""
     __tablename__ = "expense"
 
+    # Expense has an id, title, total amount, and is linked to a household and the user who paid.
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(120), nullable=False)
     total_amount = db.Column(db.Float, nullable=False)
 
-    # This links the expense to the correct household.
+    # Which household this expense belongs to.
     household_id = db.Column(
         db.Integer,
         db.ForeignKey("household.id"),
@@ -219,12 +298,14 @@ class Expense(db.Model):
 # ---------------------------------------------------------
 # ExpenseShare
 # ---------------------------------------------------------
+# Each row is one person’s share of one expense (how much they owe for that expense).
 class ExpenseShare(db.Model):
     """I use this model to store how much one user owes for a specific expense."""
     __tablename__ = "expense_share"
 
     id = db.Column(db.Integer, primary_key=True)
 
+    # Which expense this share is for.
     expense_id = db.Column(
         db.Integer,
         db.ForeignKey("expense.id"),
@@ -246,12 +327,14 @@ class ExpenseShare(db.Model):
 # ---------------------------------------------------------
 # ChoreSwapRequest
 # ---------------------------------------------------------
+# A swap request is when one user asks another to take over a chore. It stays pending until the other user accepts or declines.
 class ChoreSwapRequest(db.Model):
     """I use this model to represent a request to swap chores between two users."""
     __tablename__ = "chore_swap_request"
 
     id = db.Column(db.Integer, primary_key=True)
 
+    # Which household the swap is in (so we can filter and clean up).
     household_id = db.Column(
         db.Integer,
         db.ForeignKey("household.id"),
@@ -259,7 +342,7 @@ class ChoreSwapRequest(db.Model):
         index=True,
     )
 
-    # This is the user asking for the swap.
+    # The user who wants to give away their chore.
     from_user_id = db.Column(
         db.Integer,
         db.ForeignKey("user.id"),
@@ -267,7 +350,7 @@ class ChoreSwapRequest(db.Model):
         index=True,
     )
 
-    # This is the user who must accept or decline.
+    # The user who can accept or decline the swap.
     to_user_id = db.Column(
         db.Integer,
         db.ForeignKey("user.id"),
@@ -275,7 +358,7 @@ class ChoreSwapRequest(db.Model):
         index=True,
     )
 
-    # This is the chore offered by the requester.
+    # The chore that the requester wants to give away.
     offered_chore_id = db.Column(
         db.Integer,
         db.ForeignKey("chore.id"),
@@ -283,7 +366,7 @@ class ChoreSwapRequest(db.Model):
         index=True,
     )
 
-    # This is the chore owned by the recipient (v1 logic still allows None).
+    # The chore from the recipient that could be swapped (in the current logic this can be unused/placeholder).
     requested_chore_id = db.Column(
         db.Integer,
         db.ForeignKey("chore.id"),
@@ -291,13 +374,13 @@ class ChoreSwapRequest(db.Model):
         index=True,
     )
 
-    # I track the state so requests can be accepted or declined.
+    # Status is "pending", "accepted", or "declined" so we know what happened to the request.
     status = db.Column(db.String(20), nullable=False, default="pending")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     responded_at = db.Column(db.DateTime, nullable=True)
 
-    # These relationships make template access easier (e.g. swap.offered_chore.title).
+    # Relationships so we can do things like swap.offered_chore.title in templates and code.
     offered_chore = db.relationship(
         "Chore",
         foreign_keys=[offered_chore_id],
@@ -316,13 +399,14 @@ class ChoreSwapRequest(db.Model):
 # Reference: SQLAlchemy ORM relationships and patterns
 # https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
 # https://docs.sqlalchemy.org/en/13/orm/tutorial.html
+# An inventory item is something the household tracks (e.g. milk, soap) with quantity, location, and optional expiry.
 class InventoryItem(db.Model):
     """I use this model to represent shared household inventory items."""
     __tablename__ = "inventory_item"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # This links the item to its household.
+    # Which household this item belongs to.
     household_id = db.Column(
         db.Integer,
         db.ForeignKey("household.id"),
@@ -330,11 +414,13 @@ class InventoryItem(db.Model):
         index=True,
     )
 
+    # Item name, how many we have, optional unit (e.g. "bottle"), and notes.
     name = db.Column(db.String(120), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     unit = db.Column(db.String(40), nullable=True)
     notes = db.Column(db.String(255), nullable=True)
 
+    # Optional grouping: category (e.g. Food), sub_category, and where it is stored (e.g. Fridge).
     category = db.Column(db.String(40), nullable=True)
     sub_category = db.Column(db.String(60), nullable=True)
     location = db.Column(db.String(40), nullable=True)
@@ -342,7 +428,7 @@ class InventoryItem(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # use_count tracks how often an item is used or edited.
+    # How many times this item was used or edited; used to show "frequently used" items.
     # Logic informed by AI-assisted guidance for inventory usage tracking.
     # Source: ChatGPT – Inventory low-stock & frequent-items prompt (Feb 2026)- https://chatgpt.com/share/69865b3d-3e40-8007-b7fd-0ff594971ab5
 
@@ -353,10 +439,57 @@ class InventoryItem(db.Model):
     expiry_type = db.Column(db.String(20), nullable=True)
     expiry_date = db.Column(db.Date, nullable=True)
 
+    # Optional minimum stock threshold: when quantity <= min_stock, "Add to Shopping List" is shown.
+    # Default 0 means the button appears when quantity hits zero.
+    min_stock = db.Column(db.Integer, nullable=True, default=0)
+
+
+# ---------------------------------------------------------
+# ShoppingListItem
+# ---------------------------------------------------------
+# A shared household shopping list. Items can be added manually or from inventory when low/out of stock.
+# When an item is marked "picked up", the user can be prompted to update the linked inventory item.
+class ShoppingListItem(db.Model):
+    """I use this model to represent one item on the household's shared shopping list."""
+    __tablename__ = "shopping_list_item"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    household_id = db.Column(
+        db.Integer,
+        db.ForeignKey("household.id"),
+        nullable=False,
+        index=True,
+    )
+
+    name = db.Column(db.String(120), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    unit = db.Column(db.String(40), nullable=True)
+    category = db.Column(db.String(40), nullable=True)
+
+    # True when someone has picked up the item while shopping (checkbox on the list).
+    picked_up = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Optional link to an inventory item: used when added from inventory and for "update stock?" prompt.
+    inventory_item_id = db.Column(
+        db.Integer,
+        db.ForeignKey("inventory_item.id"),
+        nullable=True,
+        index=True,
+    )
+    inventory_item = db.relationship(
+        "InventoryItem",
+        foreign_keys=[inventory_item_id],
+        backref=db.backref("shopping_list_entries", lazy="dynamic"),
+    )
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 # ---------------------------------------------------------
 # Notification (NEW)
 # ---------------------------------------------------------
+# A notification is a message shown in the app (e.g. as a toast). It can be for the whole household or for one user.
 # Notification model design (household-scoped + optional user-scoped).
 # Implemented with AI-assisted guidance for in-app notifications storage and fields.
 # Source: ChatGPT conversation – Notifications feature prompt (Feb 2026) - https://chatgpt.com/share/69865e70-4154-8007-b020-98259faaf812
@@ -377,7 +510,7 @@ class Notification(db.Model):
         index=True,
     )
 
-    # If this is None, the notification is visible to everyone in the household.
+    # If user_id is None, the notification is for the whole household; otherwise it is for that user only.
     user_id = db.Column(
         db.Integer,
         db.ForeignKey("user.id"),
@@ -385,14 +518,52 @@ class Notification(db.Model):
         index=True,
     )
 
-    # This helps the app know what kind of notification it is.
+    # Type tells us the kind of notification (e.g. chore_due, expense_new) for styling or filtering.
     type = db.Column(db.String(40), nullable=False)
 
     title = db.Column(db.String(120), nullable=False)
     message = db.Column(db.String(255), nullable=False)
 
-    # I use this link so clicking the notification takes the user to the right page.
+    # Optional URL so when the user clicks the notification they go to the right page (e.g. chores or expenses).
     link_url = db.Column(db.String(255), nullable=True)
 
+    # Once the user has seen it, we mark it read so we do not show it again.
     is_read = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships so we can load notifications for a household or for a user.
+    household = db.relationship("Household", backref=db.backref("notifications", lazy="dynamic"))
+    user = db.relationship("User", backref=db.backref("notifications", lazy="dynamic"))
+
+
+# ---------------------------------------------------------
+# LeaderboardReward
+# ---------------------------------------------------------
+# Rewards for the weekly leader: pre-made (household_id NULL) or custom per household.
+# The household selects one reward as "the prize" for the current leader.
+class LeaderboardReward(db.Model):
+    """Reward option for the leaderboard winner (e.g. 'Buy the leader a pint')."""
+    __tablename__ = "leaderboard_reward"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # NULL = pre-made reward; set = custom reward for this household.
+    household_id = db.Column(
+        db.Integer,
+        db.ForeignKey("household.id"),
+        nullable=True,
+        index=True,
+    )
+
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # For custom rewards, who added it (optional).
+    created_by_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=True,
+        index=True,
+    )
+    created_by = db.relationship("User", backref="created_rewards", foreign_keys=[created_by_user_id])

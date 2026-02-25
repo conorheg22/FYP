@@ -1,116 +1,149 @@
 {% extends "base.html" %}
+{% block title %}HOMI — Making Shared Living Simple{% endblock %}
+
 {% block content %}
 
-<div class="container py-5">
-
   <!-- HERO -->
-  <div class="card homi p-4 p-md-5 mb-4 homi-accent">
-    <div class="row align-items-center g-4">
-      <div class="col-lg-7">
-        <h1 class="display-5 mb-3">
-          Smarter shared living.<br class="d-none d-md-block">
-          Less stress, more fairness.
-        </h1>
-        <p class="lead mb-4">
-          HOmi helps housemates manage chores, inventory, expenses, and motivation — all in one clean dashboard.
-        </p>
-
-        <div class="d-flex flex-wrap gap-2">
-          {% if session.get("user_id") %}
-            <a href="{{ url_for('main.db_test_list') }}" class="btn btn-primary">
-              Go to Dashboard
-            </a>
-            <a href="{{ url_for('main.logout') }}" class="btn btn-outline-primary">
-              Log out
-            </a>
-          {% else %}
-            <a href="{{ url_for('main.register') }}" class="btn btn-primary">
-              Get Started
-            </a>
-            <a href="{{ url_for('main.login') }}" class="btn btn-outline-primary">
-              Log In
-            </a>
-          {% endif %}
+  <section class="landing-hero">
+    <div class="container">
+      <div class="row align-items-center g-4 py-4 py-lg-5">
+        <div class="col-lg-7">
+          <h1 class="landing-headline mb-3">
+            Smarter shared living.<br class="d-none d-md-block">
+            Less stress, more fairness.
+          </h1>
+          <p class="lead landing-subheadline mb-4">
+            HOMI helps housemates manage chores, inventory, expenses, and motivation — all in one clean dashboard. Get your household on the same page in minutes.
+          </p>
+          <div class="landing-cta-wrap">
+            {% if session.get("user_id") %}
+              <a href="{{ url_for('main.db_test_list') }}" class="btn btn-primary btn-lg">
+                Go to Dashboard
+              </a>
+              <a href="{{ url_for('main.logout') }}" class="btn btn-outline-primary btn-lg">Log out</a>
+            {% else %}
+              <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-lg">
+                Get started free
+              </a>
+              <a href="{{ url_for('main.login') }}" class="btn btn-outline-primary btn-lg">Log in</a>
+            {% endif %}
+          </div>
+          <p class="mt-3 mb-0 text-muted small">No credit card required · Free for small households</p>
         </div>
-      </div>
-
-      <div class="col-lg-5">
-        <div class="card homi p-4">
-          <h3 class="h5 mb-3">What you can do</h3>
-          <ul class="list-unstyled mb-0">
-            <li class="mb-2">✅ Fair chore distribution + tracking</li>
-            <li class="mb-2">📦 Inventory + shopping reminders</li>
-            <li class="mb-2">💸 Split expenses transparently</li>
-            <li class="mb-0">🏆 Points + leaderboard motivation</li>
-          </ul>
+        <div class="col-lg-5">
+          <div class="card homi p-4 p-lg-5 shadow-sm">
+            <h3 class="h5 mb-3 fw-bold text-dark">What you get</h3>
+            <ul class="list-unstyled mb-0">
+              <li class="d-flex align-items-center mb-3"><i class="bi bi-check2-circle text-success me-2 fs-5"></i> Fair chore distribution and tracking</li>
+              <li class="d-flex align-items-center mb-3"><i class="bi bi-check2-circle text-success me-2 fs-5"></i> Inventory and shopping reminders</li>
+              <li class="d-flex align-items-center mb-3"><i class="bi bi-check2-circle text-success me-2 fs-5"></i> Transparent expense splitting</li>
+              <li class="d-flex align-items-center mb-0"><i class="bi bi-check2-circle text-success me-2 fs-5"></i> Points and leaderboard motivation</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- FEATURE GRID -->
-  <div class="row g-4">
-    <div class="col-md-6 col-lg-3">
-      <div class="card homi p-4 h-100">
-        <div class="badge badge-upcoming mb-3">Chores</div>
-        <h3 class="h5">Stay on top of tasks</h3>
-        <p class="mb-0">Assign chores, set due dates, and track what’s done.</p>
+  <!-- TRUST BAR -->
+  <section class="landing-section-alt py-4">
+    <div class="container">
+      <div class="trust-bar">
+        <span class="trust-bar-item"><i class="bi bi-shield-check"></i> Secure & private</span>
+        <span class="trust-bar-item"><i class="bi bi-lightning-charge"></i> Free to start</span>
       </div>
     </div>
+  </section>
 
-    <div class="col-md-6 col-lg-3">
-      <div class="card homi p-4 h-100">
-        <div class="badge badge-upcoming mb-3">Inventory</div>
-        <h3 class="h5">Reduce waste</h3>
-        <p class="mb-0">Know what your house has before buying duplicates.</p>
+  <!-- FEATURES -->
+  <section class="landing-section landing-section-alt" id="features">
+    <div class="container">
+      <h2 class="landing-headline text-center mb-2">Everything you need in one place</h2>
+      <p class="landing-subheadline text-center mx-auto mb-5">Chores, inventory, expenses, and motivation — designed for shared living.</p>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon"><i class="bi bi-check2-square"></i></div>
+            <h3 class="feature-title">Chores & tasks</h3>
+            <p class="feature-desc">Assign tasks, set due dates, and track completion. Fair rotation and no more "I thought you were doing it."</p>
+            {% if not session.get("user_id") %}<a href="{{ url_for('main.register') }}" class="btn btn-sm btn-outline-primary mt-2">Try it</a>{% endif %}
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon"><i class="bi bi-box-seam"></i></div>
+            <h3 class="feature-title">Inventory</h3>
+            <p class="feature-desc">Know what you have before buying. Low-stock alerts and expiry reminders so nothing goes to waste.</p>
+            {% if not session.get("user_id") %}<a href="{{ url_for('main.register') }}" class="btn btn-sm btn-outline-primary mt-2">Try it</a>{% endif %}
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon"><i class="bi bi-currency-dollar"></i></div>
+            <h3 class="feature-title">Expenses</h3>
+            <p class="feature-desc">Track shared purchases and split fairly. Transparent and simple — no awkward money talks.</p>
+            {% if not session.get("user_id") %}<a href="{{ url_for('main.register') }}" class="btn btn-sm btn-outline-primary mt-2">Try it</a>{% endif %}
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card">
+            <div class="feature-icon"><i class="bi bi-trophy"></i></div>
+            <h3 class="feature-title">Leaderboard & rewards</h3>
+            <p class="feature-desc">Earn points for contributions and climb the leaderboard. Make shared living more fun.</p>
+            {% if not session.get("user_id") %}<a href="{{ url_for('main.register') }}" class="btn btn-sm btn-outline-primary mt-2">Try it</a>{% endif %}
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="col-md-6 col-lg-3">
-      <div class="card homi p-4 h-100">
-        <div class="badge badge-upcoming mb-3">Expenses</div>
-        <h3 class="h5">Split fairly</h3>
-        <p class="mb-0">Track shared purchases and avoid awkward money convos.</p>
-      </div>
-    </div>
-
-    <div class="col-md-6 col-lg-3">
-      <div class="card homi p-4 h-100">
-        <div class="badge badge-priority mb-3">Gamification</div>
-        <h3 class="h5">Stay motivated</h3>
-        <p class="mb-0">Earn points for contributions and climb the leaderboard.</p>
-      </div>
-    </div>
-  </div>
+  </section>
 
   <!-- HOW IT WORKS -->
-  <div class="card homi p-4 p-md-5 mt-4">
-    <h2 class="h3 mb-3">How it works</h2>
-    <div class="row g-4">
-      <div class="col-md-4">
-        <div class="card homi p-4 h-100">
-          <div class="badge badge-upcoming mb-3">Step 1</div>
-          <h3 class="h5">Create or join a household</h3>
-          <p class="mb-0">Use an invite code so everyone shares the same space.</p>
+  <section class="landing-section" id="how-it-works">
+    <div class="container">
+      <h2 class="landing-headline text-center mb-2">How it works</h2>
+      <p class="landing-subheadline text-center mx-auto mb-5">Get your household set up in three simple steps.</p>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <h3 class="step-title">Create or join a household</h3>
+            <p class="step-desc">Sign up and create your household or join with an invite code. Everyone shares the same space and rules.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <h3 class="step-title">Add chores, inventory & expenses</h3>
+            <p class="step-desc">Set due dates, assign tasks, log shared purchases, and track what's in the cupboard.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <h3 class="step-title">Live better together</h3>
+            <p class="step-desc">Less conflict, less waste, more fairness. One dashboard for the whole house.</p>
+          </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card homi p-4 h-100">
-          <div class="badge badge-upcoming mb-3">Step 2</div>
-          <h3 class="h5">Manage chores + contributions</h3>
-          <p class="mb-0">Set due dates, assign tasks, track expenses & inventory.</p>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card homi p-4 h-100">
-          <div class="badge badge-upcoming mb-3">Step 3</div>
-          <h3 class="h5">Live better together</h3>
-          <p class="mb-0">Less conflict. Less waste. More fairness.</p>
-        </div>
+      <div class="text-center mt-5">
+        <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-lg">Get started free</a>
       </div>
     </div>
-  </div>
+  </section>
 
-</div>
+  <!-- CTA BLOCK -->
+  <section class="landing-section">
+    <div class="container">
+      <div class="cta-block">
+        <h2 class="cta-headline">Ready to simplify shared living?</h2>
+        <p class="cta-text">Join housemates who are already saving time and reducing friction. Free to start — no credit card required.</p>
+        {% if session.get("user_id") %}
+          <a href="{{ url_for('main.db_test_list') }}" class="btn btn-light btn-lg">Go to Dashboard</a>
+        {% else %}
+          <a href="{{ url_for('main.register') }}" class="btn btn-light btn-lg">Create your free account</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
 
 {% endblock %}

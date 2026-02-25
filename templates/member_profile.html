@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ member.name }} — Members — HOMI{% endblock %}
+
+{% block content %}
+<div class="content-medium mx-auto my-4">
+  <div class="mb-3">
+    <a href="{{ url_for('main.members_list') }}" class="btn btn-sm btn-outline-secondary mb-2">&larr; Back to members</a>
+  </div>
+
+  <div class="card homi overflow-hidden">
+    <div class="card-body p-0">
+      <div class="p-4 border-bottom bg-light bg-opacity-50">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <h1 class="page-title mb-0">
+            {{ member.name }}
+            {% if is_me %}
+              <span class="badge bg-primary ms-2">You</span>
+            {% endif %}
+            {% if is_most_active %}
+              <span class="badge bg-success ms-1">Most active</span>
+            {% endif %}
+          </h1>
+          {% if is_me %}
+            <a href="{{ url_for('main.profile_view') }}" class="btn btn-sm btn-outline-primary">Edit my profile</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="p-4">
+        <h5 class="fw-bold mb-3">Profile</h5>
+        <dl class="row mb-0">
+          <dt class="col-sm-4 text-muted">Name</dt>
+          <dd class="col-sm-8">{{ member.name }}</dd>
+          <dt class="col-sm-4 text-muted">Email</dt>
+          <dd class="col-sm-8">{{ member.email }}</dd>
+          <dt class="col-sm-4 text-muted">Role</dt>
+          <dd class="col-sm-8">{{ member.role or '—' }}</dd>
+          <dt class="col-sm-4 text-muted">Member since</dt>
+          <dd class="col-sm-8">{{ join_date or '—' }}</dd>
+        </dl>
+      </div>
+
+      <div class="p-4 border-top">
+        <h5 class="fw-bold mb-3">Activity summary</h5>
+        <div class="row g-3">
+          <div class="col-6 col-md-4">
+            <div class="p-3 rounded border bg-light bg-opacity-50 text-center">
+              <div class="fw-bold fs-4">{{ assigned_count }}</div>
+              <div class="text-muted small">Chores assigned</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="p-3 rounded border bg-light bg-opacity-50 text-center">
+              <div class="fw-bold fs-4">{{ completed_count }}</div>
+              <div class="text-muted small">Chores completed</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="p-3 rounded border bg-light bg-opacity-50 text-center">
+              <div class="fw-bold fs-4">{{ completed_count }}</div>
+              <div class="text-muted small">Total tasks completed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if badges %}
+      <div class="p-4 border-top">
+        <h5 class="fw-bold mb-3">Badges</h5>
+        <div class="d-flex flex-wrap gap-2">
+          {% for b in badges %}
+            {% if b == 'first_clean' %}<span class="badge bg-secondary">First Clean</span>{% endif %}
+            {% if b == 'on_fire' %}<span class="badge bg-danger">On Fire</span>{% endif %}
+            {% if b == 'reliable' %}<span class="badge bg-info">The Reliable One</span>{% endif %}
+            {% if b == 'speedrunner' %}<span class="badge bg-warning text-dark">Speedrunner</span>{% endif %}
+            {% if b == 'household_hero' %}<span class="badge bg-success">Household Hero</span>{% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

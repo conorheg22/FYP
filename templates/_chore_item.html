@@ -45,6 +45,14 @@
               </span>
             {% endif %}
 
+            {% if chore.estimated_minutes %}
+              <span class="homi-badge homi-badge-light">Estimated: {{ chore.estimated_minutes }} mins</span>
+            {% endif %}
+
+            {% if (chore.repeat_type|default('none')) != 'none' %}
+              <span class="homi-badge homi-badge-light">Repeats {{ chore.repeat_type }}</span>
+            {% endif %}
+
             {% if chore.assigned_to_user_id %}
               {% set owner = users_by_id.get(chore.assigned_to_user_id) %}
 
@@ -59,6 +67,19 @@
               {% endif %}
             {% else %}
               <span class="homi-badge homi-badge-soft">Unassigned</span>
+            {% endif %}
+
+            {% if not chore.completed %}
+              {% if is_overdue %}
+                <span class="homi-badge homi-badge-light">Worth: 5 points if completed now</span>
+              {% else %}
+                <span class="homi-badge homi-badge-light">Worth: 10 points</span>
+              {% endif %}
+            {% elif chore.completed_by_id and chore.points_awarded %}
+              {% set completer = users_by_id.get(chore.completed_by_id) %}
+              <span class="homi-badge homi-badge-success">
+                Completed by {{ completer.name if completer else 'Someone' }} +{{ chore.points_awarded }} pts
+              </span>
             {% endif %}
           </div>
 

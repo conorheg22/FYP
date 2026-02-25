@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Profile — HOMI{% endblock %}
+
+{% block content %}
+<div class="content-narrow mx-auto my-4">
+  <div class="page-header">
+    <h1 class="page-title">Profile</h1>
+    <p class="page-subtitle">Manage your account information</p>
+  </div>
+
+  <div class="card homi p-4">
+    <form method="POST" action="{{ url_for('main.profile_view') }}">
+      <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" id="name" name="name" class="form-control" value="{{ user.name }}" required>
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email address</label>
+        <input type="email" id="email" name="email" class="form-control" value="{{ user.email }}" required>
+      </div>
+      <div class="mb-3">
+        <label for="household" class="form-label">Household</label>
+        <input type="text" id="household" class="form-control" value="{{ user.household.name if user.household else '—' }}" disabled readonly>
+      </div>
+      <div class="mb-4">
+        <label for="created_at" class="form-label">Account created</label>
+        <input type="text" id="created_at" class="form-control" value="{{ user.created_at.strftime('%d %b %Y') if user.created_at else '—' }}" disabled readonly>
+      </div>
+
+      {% if badges is defined and badges %}
+      <div class="mb-4">
+        <label class="form-label">Badges</label>
+        <div class="d-flex flex-wrap gap-2">
+          {% for b in badges %}
+            {% if b == 'first_clean' %}<span class="badge bg-secondary">First Clean</span>{% endif %}
+            {% if b == 'on_fire' %}<span class="badge bg-danger">On Fire</span>{% endif %}
+            {% if b == 'reliable' %}<span class="badge bg-info">The Reliable One</span>{% endif %}
+            {% if b == 'speedrunner' %}<span class="badge bg-warning text-dark">Speedrunner</span>{% endif %}
+            {% if b == 'household_hero' %}<span class="badge bg-success">Household Hero</span>{% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

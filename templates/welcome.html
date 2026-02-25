@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Welcome — HOMI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card homi p-4 p-md-5 homi-accent">
+        <h1 class="h4 mb-2 text-center">Welcome to HOMI</h1>
+        <p class="text-muted text-center mb-4">
+          Join your household with an invite code from a housemate, or skip and set up later.
+        </p>
+
+        <form method="POST" action="{{ url_for('main.welcome') }}" class="mb-4">
+          <div class="mb-3">
+            <label for="invite_code" class="form-label">Household invite code</label>
+            <input
+              type="text"
+              name="invite_code"
+              id="invite_code"
+              class="form-control"
+              placeholder="e.g. ABC12XYZ"
+              autocomplete="off"
+            >
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Join household</button>
+        </form>
+
+        <div class="text-center">
+          <a href="{{ url_for('main.db_test_list') }}" class="btn btn-outline-secondary">
+            Skip for now
+          </a>
+          <p class="small text-muted mt-3 mb-0">
+            You can join or create a household anytime from the Household menu.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

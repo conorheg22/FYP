@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Notifications — HOMI{% endblock %}
+
+{% block content %}
+
+<div class="homi-shell">
+  <div class="homi-container">
+
+    <div class="homi-header">
+      <div>
+        <h1 class="homi-title">Notifications</h1>
+        <p class="homi-subtitle">
+          {% if unread_count %}
+            <span class="fw-bold">{{ unread_count }}</span> unread
+          {% else %}
+            All caught up
+          {% endif %}
+          · {{ household.name }}
+        </p>
+      </div>
+      {% if unread_count %}
+        <form method="POST" action="{{ url_for('main.notifications_mark_all_read') }}" class="d-inline">
+          <button type="submit" class="homi-btn homi-btn-primary">
+            Mark all as read
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    <div class="homi-card">
+      {% if notifications %}
+        <ul class="list-group list-group-flush">
+          {% for n in notifications %}
+            <li class="list-group-item d-flex align-items-start gap-3 py-3 {% if not n.is_read %}bg-light bg-opacity-50{% endif %}">
+              <span class="flex-shrink-0 mt-1" aria-hidden="true">
+                {% if n.type == 'chore_assigned' %}
+                  <i class="bi bi-person-check text-primary" title="Chore assigned"></i>
+                {% elif n.type == 'chore_complete' or n.type == 'chore_completed' %}
+                  <i class="bi bi-check-circle text-success" title="Chore completed"></i>
+                {% elif n.type == 'chore_due' %}
+                  <i class="bi bi-clock text-info" title="Due today"></i>
+                {% elif n.type == 'chore_overdue' or n.type == 'overdue' %}
+                  <i class="bi bi-exclamation-triangle text-warning" title="Overdue"></i>
+                {% elif n.type == 'chore_reminder' %}
+                  <i class="bi bi-bell text-secondary" title="Reminder"></i>
+                {% elif n.type == 'chore_new' %}
+                  <i class="bi bi-plus-circle text-primary" title="New chore"></i>
+                {% elif n.type == 'household_joined' %}
+                  <i class="bi bi-house-door text-success" title="Joined household"></i>
+                {% elif n.type == 'expense_new' %}
+                  <i class="bi bi-currency-dollar text-info" title="New expense"></i>
+                {% elif n.type == 'expiry_soon' or n.type == 'inventory_low' %}
+                  <i class="bi bi-box-seam text-warning" title="Inventory"></i>
+                {% else %}
+                  <i class="bi bi-info-circle text-secondary" title="Info"></i>
+                {% endif %}
+              </span>
+              <div class="flex-grow-1 min-width-0">
+                <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                  <div>
+                    <span class="fw-semibold {% if not n.is_read %}text-dark{% else %}text-muted{% endif %}">{{ n.title }}</span>
+                    <span class="text-muted small ms-2">{{ n.created_at|time_ago }}</span>
+                  </div>
+                  <div class="d-flex gap-1 flex-shrink-0">
+                    {% if not n.is_read %}
+                      <form method="POST" action="{{ url_for('main.notification_mark_read_redirect', note_id=n.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Mark read</button>
+                      </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('main.notification_delete', note_id=n.id) }}" class="d-inline" onsubmit="return confirm('Delete this notification?');">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                  </div>
+                </div>
+                <p class="mb-0 mt-1 text-body-secondary small">
+                  {% if n.link_url %}
+                    <a href="{{ n.link_url }}" class="text-decoration-none">{{ n.message }}</a>
+                  {% else %}
+                    {{ n.message }}
+                  {% endif %}
+                </p>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+
+        {% if pagination.pages > 1 %}
+          <div class="d-flex justify-content-center mt-3 pb-3">
+            <nav aria-label="Notifications pagination">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                  <a class="page-link" href="{{ url_for('main.notifications_page', page=pagination.prev_num) if pagination.has_prev else '#' }}">Previous</a>
+                </li>
+                {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+                  {% if p %}
+                    <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                      <a class="page-link" href="{{ url_for('main.notifications_page', page=p) }}">{{ p }}</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                  {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                  <a class="page-link" href="{{ url_for('main.notifications_page', page=pagination.next_num) if pagination.has_next else '#' }}">Next</a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-bell-slash display-6"></i>
+          <p class="mt-2 mb-0">No notifications yet.</p>
+          <p class="small">When chores are assigned, completed, or overdue, they will show here.</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

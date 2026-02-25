@@ -4,10 +4,12 @@
 <div class="homi-shell">
   <div class="homi-container">
 
-    <h1 class="homi-title" style="font-size:44px;">Edit Chore</h1>
-    <p class="homi-subtitle">Update the title and due date.</p>
+    <div class="page-header">
+      <h1 class="homi-title" style="font-size: 2rem;">Edit Chore</h1>
+      <p class="homi-subtitle">Update the title and due date.</p>
+    </div>
 
-    <div class="homi-card" style="max-width: 720px;">
+    <div class="card homi p-4 content-medium">
       <h2 class="homi-card-title">Edit chore</h2>
 
       <form method="POST" class="homi-form">
@@ -29,6 +31,28 @@
             name="due_date"
             class="homi-input"
             value="{{ chore.due_date.strftime('%Y-%m-%d') if chore.due_date }}"
+          >
+        </div>
+
+        <div class="homi-field">
+          <label class="homi-label">Repeat</label>
+          <select name="repeat_type" class="homi-input">
+            <option value="none" {{ 'selected' if (chore.repeat_type|default('none')) == 'none' }}>None</option>
+            <option value="daily" {{ 'selected' if (chore.repeat_type|default('')) == 'daily' }}>Daily</option>
+            <option value="weekly" {{ 'selected' if (chore.repeat_type|default('')) == 'weekly' }}>Weekly</option>
+            <option value="monthly" {{ 'selected' if (chore.repeat_type|default('')) == 'monthly' }}>Monthly</option>
+          </select>
+        </div>
+
+        <div class="homi-field">
+          <label class="homi-label">Estimated time (minutes, optional)</label>
+          <input
+            type="number"
+            name="estimated_minutes"
+            class="homi-input"
+            min="0"
+            value="{{ chore.estimated_minutes if chore.estimated_minutes is not none else '' }}"
+            placeholder="e.g. 20"
           >
         </div>
 

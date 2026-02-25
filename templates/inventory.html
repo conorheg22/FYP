@@ -12,13 +12,7 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
 
 {% block content %}
 <style>
-
-  /* Soft page background (kept local to this template) */
-  body {
-    background: #f6f7fb;
-  }
-
-  /* Consistent card styling (reusing my homi-card base) */
+  /* Consistent card styling (reusing homi-card base) */
   .inv-card {
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 14px;
@@ -236,6 +230,7 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
       <h2 class="inv-title mb-1">Inventory</h2>
       <div class="inv-muted">
         Track shared supplies, avoid duplicates, and keep an eye on expiry.
+        <a href="{{ url_for('main.shopping_list') }}">Shopping list</a>
       </div>
     </div>
 
@@ -358,6 +353,15 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
                       </form>
                     {% else %}
                       <span class="inv-muted" aria-label="Cannot use; quantity is zero">No uses left</span>
+                    {% endif %}
+
+                    {% set low_show_shop = (item.quantity <= (item.min_stock if item.min_stock is not none else 0)) %}
+                    {% if low_show_shop %}
+                      <form method="POST" action="{{ url_for('main.shopping_add_from_inventory', item_id=item.id) }}" class="m-0">
+                        <button type="submit" class="btn btn-sm btn-success" aria-label="Add {{ item.name }} to shopping list">
+                          <i class="bi bi-cart-plus"></i> Add to Shopping List
+                        </button>
+                      </form>
                     {% endif %}
 
                     <a href="{{ url_for('main.inventory_list', filter='all') }}#item-{{ item.id }}"
@@ -580,6 +584,15 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
                 ⟲ Use
               </button>
             </form>
+
+            {% set show_add_to_shop = (item.quantity <= (item.min_stock if item.min_stock is not none else 0)) %}
+            {% if show_add_to_shop %}
+              <form method="POST" action="{{ url_for('main.shopping_add_from_inventory', item_id=item.id) }}" class="m-0">
+                <button type="submit" class="btn btn-sm btn-outline-success" title="Add to shared shopping list">
+                  <i class="bi bi-cart-plus"></i> Add to Shopping List
+                </button>
+              </form>
+            {% endif %}
 
             <button
               class="btn btn-sm btn-outline-secondary"

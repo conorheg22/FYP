@@ -1,85 +1,52 @@
 {% extends "base.html" %}
 
-{% block title %}Login · HOMI{% endblock %}
+{% block title %}Log in · HOMI{% endblock %}
 
 {% block content %}
 
-<!--
-  Login Page
-  ----------
-  This page allows users to log into HOMI using their email and password.
-  It submits a POST request to main.login, where authentication is handled.
--->
-
-<div class="container py-4">
+<div class="container py-5 py-md-6">
   <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-5">
+      <div class="card homi homi-accent p-4 p-md-5 shadow-sm">
+        <h1 class="h3 mb-2 text-center fw-bold">Log in to HOMI</h1>
+        <p class="text-muted text-center mb-4">
+          Enter your details to access your household dashboard.
+        </p>
 
-    <!--
-      Centered login card
-      - Uses Bootstrap card for a clean, modern layout
-      - Responsive: scales nicely across mobile, tablet, and desktop
-    -->
-    <div class="col-12 col-md-6 col-lg-5">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
+        <form method="POST" action="{{ url_for('main.login') }}">
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              name="email"
+              required
+              placeholder="you@example.com"
+            >
+          </div>
+          <div class="mb-4">
+            <label for="password" class="form-label">Password</label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              required
+              placeholder="••••••••"
+            >
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg w-100">Log in</button>
+        </form>
 
-          <!-- Page heading -->
-          <h1 class="h4 mb-3 text-center">Log in to HOMI</h1>
+        <p class="text-center mt-4 mb-0 small text-muted">
+          No account yet?
+          <a href="{{ url_for('main.register') }}" class="fw-semibold">Create one free</a>
+        </p>
 
-          <!-- Short description under the title -->
-          <p class="text-muted small text-center mb-4">
-            Enter your details to access your household.
-          </p>
-
-          <!--
-            LOGIN FORM
-            ----------
-            - Method: POST
-            - Action: main.login (handled in main.py)
-            - Validates the user's email + password
-          -->
-          <form method="POST" action="{{ url_for('main.login') }}">
-
-            <!-- Email field -->
-            <div class="mb-3">
-              <label for="email" class="form-label">Email</label>
-              <input
-                type="email"
-                class="form-control"
-                id="email"
-                name="email"
-                required
-              >
-            </div>
-
-            <!-- Password field -->
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input
-                type="password"
-                class="form-control"
-                id="password"
-                name="password"
-                required
-              >
-            </div>
-
-            <!-- Submit button (full width) -->
-            <button type="submit" class="btn btn-primary w-100">
-              Log in
-            </button>
-          </form>
-
-          <!--
-            Link to the registration page
-            - Encourages new users to create an account
-          -->
-          <p class="text-center mt-3 mb-0 small">
-            No account yet?
-            <a href="{{ url_for('main.register') }}">Create one</a>
-          </p>
-
-        </div>
+        <p class="text-center mt-3 mb-0 small text-muted">
+          <i class="bi bi-shield-check text-success me-1"></i> Your data is secure and never shared.
+        </p>
       </div>
     </div>
   </div>

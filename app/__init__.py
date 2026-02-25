@@ -7,13 +7,14 @@ App factory and core configuration for the Flask application.
 - Registers the main blueprint that holds all routes
 """
 
+# We use Flask for the web app, SQLAlchemy for the database, and Migrate for database version changes.
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 
-# Global extension instances (not bound to any app yet)
+# Create the database and migration objects here so we can use them in models and routes. They get attached to the app later.
 db = SQLAlchemy()
 migrate = Migrate()
 
@@ -24,11 +25,11 @@ def create_app():
     - Called by Flask to create an app instance
     - Wires up config, database, migrations and blueprints
     """
-    # Load .env explicitly from project root (one level above /app)
+    # Load environment variables from the .env file in the project root so we can use SECRET_KEY, database URL, etc.
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     load_dotenv(os.path.join(project_root, ".env"))
 
-    # Create the Flask app and tell it where templates/static files live
+    # Create the Flask app and tell it where to find HTML templates and static files (CSS, JS, images).
     app = Flask(
         __name__,
         instance_relative_config=True,  # Puts instance/ folder outside package
@@ -36,44 +37,49 @@ def create_app():
         static_folder="../static",
     )
 
-    # Ensure the 'instance' folder exists (used for app.db etc.)
+    # Create the instance folder if it does not exist. This is where the SQLite database file (app.db) and other app data live.
     os.makedirs(app.instance_path, exist_ok=True)
 
     # ---- Core configuration values ----
+    # These values control how the app behaves. They can come from .env or use defaults.
 
-    # Sessions require a SECRET_KEY. Support both SECRET_KEY and FLASK_SECRET_KEY from .env
+    # Sessions need a secret key so Flask can sign cookies safely. We check both possible .env variable names.
     app.config["SECRET_KEY"] = (
         os.getenv("SECRET_KEY")
         or os.getenv("FLASK_SECRET_KEY")
         or "dev-key"
     )
 
-    # Build a default SQLite URI for instance/app.db (Windows-safe)
+    # Build the path to the database file. We fix backslashes for Windows so the URL is valid.
     db_path = os.path.join(app.instance_path, "app.db")
     default_sqlite = "sqlite:///" + db_path.replace("\\", "/")
 
-    # Use DATABASE_URL if set; otherwise use the instance/app.db default
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", default_sqlite)
+    # Use DATABASE_URL from env; rewrite Render's postgres:// to postgresql:// for SQLAlchemy/psycopg2.
+    db_url = os.getenv("DATABASE_URL", default_sqlite)
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    # Turn off change tracking because we do not need it and it uses extra memory.
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Email (Brevo)
+    # Email settings for the Brevo service (used when we send emails like chore assignment).
     app.config["BREVO_API_KEY"] = os.getenv("BREVO_API_KEY", "")
     app.config["BREVO_SENDER_EMAIL"] = os.getenv("BREVO_SENDER_EMAIL", "")
     app.config["BREVO_SENDER_NAME"] = os.getenv("BREVO_SENDER_NAME", "HOMI")
 
-    # (Optional) Debug prints — remove once everything is working
+    # Optional: print config at startup so you can check paths and that SECRET_KEY is set. You can remove these later.
     print("Instance path:", app.instance_path)
     print("DB URI:", app.config["SQLALCHEMY_DATABASE_URI"])
     print("SECRET_KEY set?", bool(app.config.get("SECRET_KEY")))
 
-    # Attach extensions to this specific app instance
+    # Connect the database and migration extensions to this app so we can use db.session and run migrations.
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Import models so Alembic / SQLAlchemy know about them
+    # Import models so that Alembic and SQLAlchemy know about all our tables (User, Household, Chore, etc.).
     from . import models  # noqa: F401
 
-    # Register the main blueprint that contains all routes
+    # Register the main blueprint so all the routes in main.py (login, chores, expenses, etc.) are active.
     from .main import main_bp
     app.register_blueprint(main_bp)
 

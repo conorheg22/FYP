@@ -20,22 +20,41 @@
       rel="stylesheet"
     >
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    >
+    <!-- Bootstrap Icons for navbar dropdowns -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
       rel="stylesheet"
     >
   </head>
 
+  <body>
     <!-- Toast container -->
-    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3"></div>
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1100;"></div>
 
     <script>
+    const TOAST_SHOWN_KEY = "homi_toast_shown_ids";
+
     async function loadNotifications() {
       const res = await fetch("/api/notifications/unread");
       const data = await res.json();
 
+      let shown = [];
+      try {
+        const raw = sessionStorage.getItem(TOAST_SHOWN_KEY);
+        if (raw) shown = JSON.parse(raw);
+      } catch (e) {}
+
       for (const n of data.notifications) {
+        if (shown.includes(n.id)) continue;
         showToast(n);
+        shown.push(n.id);
       }
+      try {
+        sessionStorage.setItem(TOAST_SHOWN_KEY, JSON.stringify(shown.slice(-50)));
+      } catch (e) {}
     }
 
     function showToast(n) {
@@ -77,17 +96,99 @@
     }
 
     document.addEventListener("DOMContentLoaded", loadNotifications);
+
+    // Navbar notification bell: badge count + dropdown list (latest 5)
+    (function () {
+      const badge = document.getElementById("notifBadge");
+      const emptyEl = document.querySelector(".notif-empty");
+      const divider = document.querySelector(".notif-divider");
+      const listParent = document.querySelector(".notif-dropdown-list");
+
+      function timeAgo(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const sec = Math.floor((Date.now() - d) / 1000);
+        if (sec < 60) return "just now";
+        if (sec < 3600) return Math.floor(sec / 60) + "m ago";
+        if (sec < 86400) return Math.floor(sec / 3600) + "h ago";
+        if (sec < 604800) return Math.floor(sec / 86400) + "d ago";
+        return d.toLocaleDateString();
+      }
+
+      function typeIcon(type) {
+        const map = { chore_assigned: "bi-person-check text-primary", chore_complete: "bi-check-circle text-success", chore_completed: "bi-check-circle text-success", chore_due: "bi-clock text-info", chore_overdue: "bi-exclamation-triangle text-warning", overdue: "bi-exclamation-triangle text-warning", chore_reminder: "bi-bell text-secondary", chore_new: "bi-plus-circle text-primary", household_joined: "bi-house-door text-success", expense_new: "bi-currency-dollar text-info", expiry_soon: "bi-box-seam text-warning", inventory_low: "bi-box-seam text-warning" };
+        return map[type] || "bi-info-circle text-secondary";
+      }
+
+      function renderDropdown(data) {
+        const count = data.unread_count || 0;
+        if (badge) {
+          badge.textContent = count > 99 ? "99+" : count;
+          badge.style.display = count > 0 ? "inline" : "none";
+        }
+        const notes = data.notifications || [];
+        if (emptyEl) {
+          emptyEl.style.display = notes.length ? "none" : "block";
+          emptyEl.textContent = notes.length ? "" : "No new notifications.";
+        }
+        if (divider) divider.style.display = notes.length ? "block" : "none";
+
+        const existingItems = listParent.querySelectorAll(".notif-item");
+        existingItems.forEach(el => el.remove());
+
+        notes.forEach(n => {
+          const li = document.createElement("li");
+          li.className = "notif-item";
+          const icon = typeIcon(n.type);
+          const link = n.link_url || "#";
+          li.innerHTML = `
+            <a class="dropdown-item py-2 d-flex align-items-start gap-2 notif-link" href="${link}" data-id="${n.id}" data-read-url="/api/notifications/${n.id}/read">
+              <i class="bi ${icon} flex-shrink-0 mt-1"></i>
+              <div class="min-width-0">
+                <span class="d-block fw-semibold small text-truncate">${n.title || "Notification"}</span>
+                <span class="d-block small text-muted text-truncate">${n.message || ""}</span>
+                <span class="d-block small text-muted mt-0">${timeAgo(n.created_at)}</span>
+              </div>
+            </a>
+          `;
+          li.querySelector("a").addEventListener("click", function (e) {
+            e.preventDefault();
+            const id = this.dataset.id;
+            const readUrl = this.dataset.readUrl;
+            const url = this.getAttribute("href");
+            if (readUrl) fetch(readUrl, { method: "POST" });
+            if (url && url !== "#") window.location.href = url;
+          });
+          listParent.appendChild(li);
+        });
+      }
+
+      function fetchNotifications() {
+        fetch("/api/notifications/unread")
+          .then(r => r.json())
+          .then(data => renderDropdown(data))
+          .catch(() => { if (emptyEl) { emptyEl.textContent = "Could not load."; emptyEl.style.display = "block"; } });
+      }
+
+      document.addEventListener("DOMContentLoaded", fetchNotifications);
+
+      const notifToggle = document.querySelector("#notifDropdown [data-bs-toggle=\"dropdown\"]");
+      if (notifToggle) {
+        notifToggle.addEventListener("show.bs.dropdown", fetchNotifications);
+      }
+    })();
     </script>
 
   <body>
-    <!-- HEADER / NAVBAR -->
+  <body>
     <header class="homi">
-      <nav class="navbar navbar-expand-lg navbar-dark">
+      <nav class="navbar navbar-expand-lg navbar-light bg-white">
         <div class="container">
 
-          <!-- Brand -->
-          <a class="navbar-brand d-flex align-items-center"
-             href="{{ url_for('main.index') }}">
+          <!-- Brand: logo links to home (replaces separate Home link) -->
+          <a class="navbar-brand d-flex align-items-center text-decoration-none"
+             href="{{ url_for('main.index') }}"
+             title="Home">
             <img
               src="{{ url_for('static', filename='img/homi-logo.png') }}"
               alt="HOMI Logo"
@@ -96,108 +197,198 @@
             <span class="fw-bold ms-2">HOMI</span>
           </a>
 
-          <!-- Mobile toggle -->
+          <!-- Mobile: hamburger toggles this block -->
           <button
             class="navbar-toggler"
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
           >
             <span class="navbar-toggler-icon"></span>
           </button>
 
-          <!-- Navigation -->
           <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav align-items-center gap-2">
-
-              <!-- Home -->
-              <li class="nav-item">
-                <a class="nav-link {% if request.path == '/' %}active{% endif %}"
-                   href="{{ url_for('main.index') }}">
-                  Home
-                </a>
-              </li>
+            <ul class="navbar-nav align-items-center gap-1">
 
               {% if session.get('user_id') %}
 
-                <!-- Chores -->
-                <li class="nav-item">
-                  <a class="nav-link {% if request.path.startswith('/db-test') %}active{% endif %}"
-                     href="{{ url_for('main.db_test_list') }}">
-                    Chores
+                <!-- Tasks: Chores + Calendar -->
+                {% set tasks_active = request.path.startswith('/db-test') or request.path.startswith('/calendar') %}
+                <li class="nav-item dropdown">
+                  <a
+                    class="nav-link dropdown-toggle {% if tasks_active %}active{% endif %}"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i class="bi bi-check2-square me-1" aria-hidden="true"></i>
+                    Tasks
                   </a>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item {% if request.path.startswith('/db-test') %}active{% endif %}"
+                         href="{{ url_for('main.db_test_list') }}">
+                        <i class="bi bi-list-task me-2"></i>Chores
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <a class="dropdown-item {% if request.path.startswith('/calendar') %}active{% endif %}"
+                         href="{{ url_for('main.calendar_view') }}">
+                        <i class="bi bi-calendar3 me-2"></i>Calendar
+                      </a>
+                    </li>
+                  </ul>
                 </li>
 
-                <!-- Inventory -->
-                <li class="nav-item">
-                  <a class="nav-link {% if request.path.startswith('/inventory') %}active{% endif %}"
-                     href="{{ url_for('main.inventory_list') }}">
-                    Inventory
+                <!-- Management: Inventory + Shopping + Expenses -->
+                {% set mgmt_active = request.path.startswith('/inventory') or request.path.startswith('/expenses') or request.path.startswith('/shopping') %}
+                <li class="nav-item dropdown">
+                  <a
+                    class="nav-link dropdown-toggle {% if mgmt_active %}active{% endif %}"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i class="bi bi-box-seam me-1" aria-hidden="true"></i>
+                    Management
                   </a>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item {% if request.path.startswith('/inventory') %}active{% endif %}"
+                         href="{{ url_for('main.inventory_list') }}">
+                        <i class="bi bi-boxes me-2"></i>Inventory
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item {% if request.path.startswith('/shopping') %}active{% endif %}"
+                         href="{{ url_for('main.shopping_list') }}">
+                        <i class="bi bi-cart3 me-2"></i>Shopping List
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <a class="dropdown-item {% if request.path.startswith('/expenses') %}active{% endif %}"
+                         href="{{ url_for('main.expenses') }}">
+                        <i class="bi bi-currency-dollar me-2"></i>Expenses
+                      </a>
+                    </li>
+                  </ul>
                 </li>
 
-                <!-- Expenses -->
-                <li class="nav-item">
-                  <a class="nav-link {% if request.path.startswith('/expenses') %}active{% endif %}"
-                     href="{{ url_for('main.expenses') }}">
-                    Expenses
+                <!-- Engagement: Leaderboard + Members -->
+                {% set engagement_active = request.path.startswith('/leaderboard') or request.path.startswith('/members') %}
+                <li class="nav-item dropdown">
+                  <a
+                    class="nav-link dropdown-toggle {% if engagement_active %}active{% endif %}"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i class="bi bi-trophy me-1" aria-hidden="true"></i>
+                    Engagement
                   </a>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item {% if request.path.startswith('/leaderboard') %}active{% endif %}"
+                         href="{{ url_for('main.leaderboard_view') }}">
+                        <i class="bi bi-trophy me-2"></i>Leaderboard
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <a class="dropdown-item {% if request.path.startswith('/members') %}active{% endif %}"
+                         href="{{ url_for('main.members_list') }}">
+                        <i class="bi bi-people me-2"></i>Members
+                      </a>
+                    </li>
+                  </ul>
                 </li>
 
-                <li class="nav-item">
-                  <a class="nav-link {% if request.path.startswith('/calendar') %}active{% endif %}"
-                     href="{{ url_for('main.calendar_view') }}">
-                    Calendar
+                <!-- Notifications bell -->
+                <li class="nav-item dropdown" id="notifDropdown">
+                  <a
+                    class="nav-link dropdown-toggle position-relative"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    aria-label="Notifications"
+                  >
+                    <i class="bi bi-bell me-1" aria-hidden="true"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light border-2 notif-badge-count" id="notifBadge" style="display: none; font-size: 0.65rem;">0</span>
                   </a>
+                  <ul class="dropdown-menu dropdown-menu-end shadow notif-dropdown-list" style="min-width: 320px;">
+                    <li class="dropdown-header d-flex justify-content-between align-items-center">
+                      <span class="fw-bold">Notifications</span>
+                      <a class="small" href="{{ url_for('main.notifications_page') }}">See all</a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="px-3 py-2 text-muted small text-center notif-empty">Loading…</li>
+                    <li class="dropdown-divider notif-divider" style="display: none;"></li>
+                  </ul>
                 </li>
 
-                <!-- Household -->
+                <!-- Household settings -->
                 <li class="nav-item dropdown">
                   <a
                     class="nav-link dropdown-toggle"
                     href="#"
                     role="button"
                     data-bs-toggle="dropdown"
+                    aria-expanded="false"
                   >
+                    <i class="bi bi-house-door me-1" aria-hidden="true"></i>
                     Household
                   </a>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                      <a class="dropdown-item"
-                         href="{{ url_for('main.create_household') }}">
-                        Create Household
+                      <a class="dropdown-item" href="{{ url_for('main.create_household') }}">
+                        <i class="bi bi-plus-circle me-2"></i>Create Household
                       </a>
                     </li>
                     <li>
-                      <a class="dropdown-item"
-                         href="{{ url_for('main.join_household') }}">
-                        Join Household
+                      <a class="dropdown-item" href="{{ url_for('main.join_household') }}">
+                        <i class="bi bi-link-45deg me-2"></i>Join Household
                       </a>
                     </li>
+                    <li><hr class="dropdown-divider"></li>
                     <li>
-                      <a class="dropdown-item"
-                         href="{{ url_for('main.manage_household') }}">
-                        Manage Household
+                      <a class="dropdown-item" href="{{ url_for('main.manage_household') }}">
+                        <i class="bi bi-gear me-2"></i>Manage Household
                       </a>
                     </li>
                   </ul>
                 </li>
 
-                <!-- Account -->
-                <li class="nav-item dropdown ms-2">
+                <!-- User account -->
+                <li class="nav-item dropdown ms-lg-2" id="accountDropdown">
                   <a
-                    class="nav-link dropdown-toggle"
+                    class="nav-link dropdown-toggle d-flex align-items-center"
                     href="#"
                     role="button"
                     data-bs-toggle="dropdown"
+                    aria-expanded="false"
                   >
+                    <i class="bi bi-person-circle me-1" aria-hidden="true"></i>
                     {{ session.get('user_name') }}
                   </a>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                      <a class="dropdown-item text-danger"
-                         href="{{ url_for('main.logout') }}">
-                        Log out
+                      <a class="dropdown-item" href="{{ url_for('main.profile_view') }}">
+                        <i class="bi bi-person me-2"></i>Profile
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <a class="dropdown-item text-danger" href="{{ url_for('main.logout') }}">
+                        <i class="bi bi-box-arrow-right me-2"></i>Log out
                       </a>
                     </li>
                   </ul>
@@ -205,19 +396,19 @@
 
               {% else %}
 
-                <!-- Login -->
+                <!-- Login (secondary) -->
                 <li class="nav-item">
-                  <a class="btn btn-sm btn-primary"
+                  <a class="btn btn-cta-secondary"
                      href="{{ url_for('main.login') }}">
-                    Login
+                    Log in
                   </a>
                 </li>
 
-                <!-- Register -->
+                <!-- Sign Up (primary CTA) -->
                 <li class="nav-item">
-                  <a class="btn btn-sm btn-primary"
+                  <a class="btn btn-cta-primary"
                      href="{{ url_for('main.register') }}">
-                    Sign Up
+                    Get started free
                   </a>
                 </li>
 
@@ -229,18 +420,90 @@
     </header>
 
     <!-- MAIN -->
-    <main class="container my-4">
+    <main class="flex-grow-1">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="container pt-4">
+            <div class="mb-4">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category if category in ['success', 'danger', 'warning', 'info'] else 'info' }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endwith %}
       {% block content %}{% endblock %}
     </main>
 
     <!-- FOOTER -->
-    <footer class="homi text-center py-3">
-      <small>© 2025 HOMI — Making Shared Living Simple</small>
+    <footer class="homi">
+      <div class="footer-inner container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="navbar-brand d-inline-flex align-items-center text-decoration-none mb-2" href="{{ url_for('main.index') }}">
+              <img src="{{ url_for('static', filename='img/homi-logo.png') }}" alt="HOMI" height="32">
+              <span class="fw-bold ms-2">HOMI</span>
+            </a>
+            <p>Making shared living simple. Chores, inventory, expenses, and motivation — one place for your household.</p>
+            <div class="footer-trust">
+              <span class="footer-trust-item"><i class="bi bi-shield-check"></i> Secure & private</span>
+              <span class="footer-trust-item"><i class="bi bi-lightning-charge"></i> Free to start</span>
+            </div>
+          </div>
+          <div>
+            <div class="footer-heading">Product</div>
+            <ul class="footer-links">
+              <li><a href="{{ url_for('main.index') }}">Features</a></li>
+              <li><a href="{{ url_for('main.index') }}#how-it-works">How it works</a></li>
+              <li><a href="{{ url_for('main.register') }}">Sign up</a></li>
+              <li><a href="{{ url_for('main.login') }}">Log in</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="footer-heading">Company</div>
+            <ul class="footer-links">
+              <li><a href="{{ url_for('main.index') }}">About</a></li>
+              <li><a href="{{ url_for('main.index') }}">Contact</a></li>
+              <li><a href="{{ url_for('main.index') }}">Privacy</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <small>© 2025 HOMI. All rights reserved.</small>
+          <div class="footer-trust">
+            <span class="footer-trust-item"><i class="bi bi-shield-lock"></i> Your data is secure</span>
+          </div>
+        </div>
+      </div>
     </footer>
 
     <!-- Bootstrap JS -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+    </script>
+
+    <!-- Hover-to-open for the Account dropdown (NEW) -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const li = document.getElementById("accountDropdown");
+        if (!li) return;
+
+        const toggle = li.querySelector('[data-bs-toggle="dropdown"]');
+        if (!toggle || !window.bootstrap) return;
+
+        const dd = bootstrap.Dropdown.getOrCreateInstance(toggle);
+
+        li.addEventListener("mouseenter", () => {
+          dd.show();
+        });
+
+        li.addEventListener("mouseleave", () => {
+          dd.hide();
+        });
+      });
     </script>
   </body>
 </html>

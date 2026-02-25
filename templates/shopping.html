@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{# shopping.html — Shared household shopping list. HOmi card style, real-time toggle, update-stock prompt. #}
+
+{% block title %}Shopping List — HOMI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+    <div>
+      <h2 class="page-title mb-1">Shopping List</h2>
+      <p class="page-subtitle">
+        Shared list for the whole household. Add items manually or from
+        <a href="{{ url_for('main.inventory_list') }}">Inventory</a> when stock is low.
+      </p>
+    </div>
+    <a href="{{ url_for('main.inventory_list') }}" class="homi-btn homi-btn-ghost">
+      <i class="bi bi-boxes"></i> Inventory
+    </a>
+  </div>
+
+  {# Add item card #}
+  <div class="card homi homi-card p-4 mb-4">
+    <h5 class="homi-card-title mb-3">Add item</h5>
+    <form method="POST" action="{{ url_for('main.shopping_add') }}" class="row g-3">
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="shop_name">Name</label>
+        <input id="shop_name" class="form-control" name="name" placeholder="e.g. Milk" required>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label" for="shop_qty">Quantity</label>
+        <input id="shop_qty" class="form-control" name="quantity" type="number" min="1" value="1">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label" for="shop_unit">Unit</label>
+        <input id="shop_unit" class="form-control" name="unit" placeholder="e.g. bottles">
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="shop_category">Category</label>
+        <select id="shop_category" class="form-select" name="category">
+          <option value="">—</option>
+          {% for c in categories %}
+            <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <button class="homi-btn homi-btn-primary" type="submit">
+          <i class="bi bi-plus-lg"></i> Add to list
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# List: to buy (unpicked) first, then picked #}
+  <div class="card homi homi-card p-4">
+    <h5 class="homi-card-title mb-3">Items</h5>
+    {% if not items %}
+      <div class="homi-empty">
+        <p class="homi-empty-title">No items yet</p>
+        <p class="homi-empty-text">Add items above or from the Inventory page when something is low or out of stock.</p>
+      </div>
+    {% else %}
+      <ul class="list-group list-group-flush">
+        {% for item in items %}
+          <li class="list-group-item d-flex align-items-center gap-3 py-3 {% if item.picked_up %}completed{% endif %}" data-shopping-id="{{ item.id }}">
+            <div class="form-check flex-shrink-0 mb-0">
+              <input
+                class="form-check-input shopping-toggle"
+                type="checkbox"
+                data-id="{{ item.id }}"
+                {% if item.picked_up %}checked{% endif %}
+                aria-label="Mark {{ item.name }} as picked up"
+              >
+            </div>
+            <div class="flex-grow-1 min-width-0">
+              <span class="fw-bold">{{ item.name }}</span>
+              <span class="text-muted ms-2">
+                {{ item.quantity }}{% if item.unit %} {{ item.unit }}{% endif %}
+                {% if item.category %} · {{ item.category }}{% endif %}
+              </span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              {% if item.picked_up and item.inventory_item_id %}
+                <button type="button" class="btn btn-sm btn-outline-primary update-stock-btn" data-id="{{ item.id }}" data-name="{{ item.name }}" data-qty="{{ item.quantity }}" data-unit="{{ item.unit or '' }}">
+                  Update stock
+                </button>
+              {% endif %}
+              <form method="POST" action="{{ url_for('main.shopping_delete', item_id=item.id) }}" class="m-0" onsubmit="return confirm('Remove this from the list?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete {{ item.name }}">Delete</button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+
+</div>
+
+{# Modal: "Got X of [name] — update stock?" #}
+<div class="modal fade" id="updateStockModal" tabindex="-1" aria-labelledby="updateStockModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="updateStockModalLabel">Update inventory?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-3"><span id="updateStockMessage"></span> — update stock?</p>
+        <form id="updateStockForm" method="POST" action="">
+          <label class="form-label" for="quantity_added">Quantity to add</label>
+          <input id="quantity_added" class="form-control" name="quantity_added" type="number" min="1" value="1">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No</button>
+        <button type="submit" form="updateStockForm" class="homi-btn homi-btn-primary">Yes, update stock</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Real-time checkbox toggle without page reload
+  document.querySelectorAll(".shopping-toggle").forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      var id = this.getAttribute("data-id");
+      var row = this.closest("[data-shopping-id]");
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/shopping/" + id + "/toggle", true);
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          var res = JSON.parse(xhr.responseText);
+          if (row) {
+            if (res.picked_up) row.classList.add("completed"); else row.classList.remove("completed");
+            // Inject "Update stock" button if picked up and has linked inventory item
+            var actions = row.querySelector(".d-flex.align-items-center.gap-2");
+            var existingBtn = row.querySelector(".update-stock-btn");
+            if (res.picked_up && res.inventory_item_id && actions && !existingBtn) {
+              var btn = document.createElement("button");
+              btn.type = "button";
+              btn.className = "btn btn-sm btn-outline-primary update-stock-btn";
+              btn.setAttribute("data-id", res.id);
+              btn.setAttribute("data-name", res.name);
+              btn.setAttribute("data-qty", res.quantity);
+              btn.setAttribute("data-unit", res.unit || "");
+              btn.textContent = "Update stock";
+              btn.addEventListener("click", function () {
+                document.getElementById("updateStockMessage").textContent = "Got " + btn.getAttribute("data-qty") + (btn.getAttribute("data-unit") ? " " + btn.getAttribute("data-unit") + " of " : " ") + btn.getAttribute("data-name");
+                document.getElementById("quantity_added").value = btn.getAttribute("data-qty");
+                document.getElementById("updateStockForm").action = "/shopping/" + btn.getAttribute("data-id") + "/update-stock";
+                new bootstrap.Modal(document.getElementById("updateStockModal")).show();
+              });
+              actions.insertBefore(btn, actions.querySelector("form"));
+            } else if (!res.picked_up && existingBtn) existingBtn.remove();
+            // If just picked up and has inventory_item_id, show modal
+            if (res.picked_up && res.inventory_item_id) {
+              var msg = "Got " + res.quantity + (res.unit ? " " + res.unit + " of " : " ") + res.name;
+              var modal = document.getElementById("updateStockModal");
+              document.getElementById("updateStockMessage").textContent = msg;
+              document.getElementById("quantity_added").value = res.quantity;
+              document.getElementById("updateStockForm").action = "/shopping/" + res.id + "/update-stock";
+              if (window.bootstrap && bootstrap.Modal) {
+                new bootstrap.Modal(modal).show();
+              }
+            }
+          }
+        }
+      };
+      xhr.send("");
+    });
+  });
+
+  // "Update stock" button on already-picked items: open modal with pre-filled data
+  document.querySelectorAll(".update-stock-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = this.getAttribute("data-id");
+      var name = this.getAttribute("data-name");
+      var qty = this.getAttribute("data-qty") || "1";
+      var unit = this.getAttribute("data-unit") || "";
+      document.getElementById("updateStockMessage").textContent = "Got " + qty + (unit ? " " + unit + " of " : " ") + name;
+      document.getElementById("quantity_added").value = qty;
+      document.getElementById("updateStockForm").action = "/shopping/" + id + "/update-stock";
+      var modal = document.getElementById("updateStockModal");
+      if (window.bootstrap && bootstrap.Modal) new bootstrap.Modal(modal).show();
+    });
+  });
+})();
+</script>
+{% endblock %}
