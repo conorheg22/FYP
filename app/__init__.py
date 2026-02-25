@@ -78,4 +78,8 @@ def create_app():
     from .main import main_bp
     app.register_blueprint(main_bp)
 
+    with app.app_context():
+        from flask_migrate import upgrade
+        upgrade()
+
     return app
