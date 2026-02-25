@@ -17,12 +17,10 @@ branch_labels = None
 depends_on = None
 
 
-def _table_exists(conn, table_name: str) -> bool:
-    row = conn.execute(
-        text("SELECT name FROM sqlite_master WHERE type='table' AND name=:t"),
-        {"t": table_name},
-    ).fetchone()
-    return row is not None
+def _table_exists(conn, table_name):
+    from sqlalchemy import inspect
+    inspector = inspect(conn)
+    return table_name in inspector.get_table_names()
 
 
 def _column_exists(conn, table_name: str, column_name: str) -> bool:
@@ -31,11 +29,13 @@ def _column_exists(conn, table_name: str, column_name: str) -> bool:
 
 
 def _index_exists(conn, index_name: str) -> bool:
-    row = conn.execute(
-        text("SELECT name FROM sqlite_master WHERE type='index' AND name=:i"),
-        {"i": index_name},
-    ).fetchone()
-    return row is not None
+    from sqlalchemy import inspect
+    inspector = inspect(conn)
+    for table_name in inspector.get_table_names():
+        for idx in inspector.get_indexes(table_name):
+            if idx.get("name") == index_name:
+                return True
+    return False
 
 
 def upgrade():

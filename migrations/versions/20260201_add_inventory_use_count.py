@@ -16,12 +16,10 @@ branch_labels = None
 depends_on = None
 
 
-def _table_exists(conn, table_name: str) -> bool:
-    row = conn.execute(
-        text("SELECT name FROM sqlite_master WHERE type='table' AND name=:t"),
-        {"t": table_name},
-    ).fetchone()
-    return row is not None
+def _table_exists(conn, table_name):
+    from sqlalchemy import inspect
+    inspector = inspect(conn)
+    return table_name in inspector.get_table_names()
 
 
 def _column_exists(conn, table_name: str, column_name: str) -> bool:
