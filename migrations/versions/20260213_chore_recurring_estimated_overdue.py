@@ -31,7 +31,7 @@ def upgrade():
                 batch_op.add_column(sa.Column("estimated_minutes", sa.Integer(), nullable=True))
             if "was_overdue" not in cols:
                 batch_op.add_column(
-                    sa.Column("was_overdue", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+                    sa.Column("was_overdue", sa.Boolean(), nullable=False, server_default=sa.text("false"))
                 )
 
 
