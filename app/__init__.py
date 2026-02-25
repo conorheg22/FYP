@@ -79,11 +79,17 @@ def create_app():
     app.register_blueprint(main_bp)
 
     with app.app_context():
-        from flask_migrate import upgrade
+        from flask_migrate import upgrade, stamp
         try:
             upgrade()
         except Exception as e:
-            print(f"Migration failed, attempting db.create_all(): {e}")
-            db.create_all()
+            print(f"Migration error: {e}")
+            print("Attempting to stamp and retry...")
+            try:
+                stamp(revision="head")
+                upgrade()
+            except Exception as e2:
+                print(f"Stamp failed too, using db.create_all(): {e2}")
+                db.create_all()
 
     return app
