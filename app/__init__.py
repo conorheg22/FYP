@@ -62,11 +62,6 @@ def create_app():
     # Turn off change tracking because we do not need it and it uses extra memory.
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Email settings for the Brevo service (used when we send emails like chore assignment).
-    app.config["BREVO_API_KEY"] = os.getenv("BREVO_API_KEY", "")
-    app.config["BREVO_SENDER_EMAIL"] = os.getenv("BREVO_SENDER_EMAIL", "")
-    app.config["BREVO_SENDER_NAME"] = os.getenv("BREVO_SENDER_NAME", "HOMI")
-
     # Optional: print config at startup so you can check paths and that SECRET_KEY is set. You can remove these later.
     print("Instance path:", app.instance_path)
     print("DB URI:", app.config["SQLALCHEMY_DATABASE_URI"])

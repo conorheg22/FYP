@@ -4,4 +4,3 @@ Flask-Migrate==4.0.7
 python-dotenv==1.0.1
 gunicorn
 psycopg2-binary
-requests

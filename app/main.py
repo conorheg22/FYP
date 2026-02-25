@@ -884,27 +884,6 @@ def db_test_assign(chore_id: int):
         link_url=url_for("main.db_test_list"),
     )
 
-    # I wrap email sending in a try/except so the app still works even if email fails.
-    try:
-        from .email_service import send_email
-
-        user = User.query.get(session["user_id"])
-        if user and user.email:
-            send_email(
-                to_email=user.email,
-                to_name=user.name,
-                subject="You’ve been assigned a chore 🧹",
-                html=f"""
-                    <p>Hi {user.name},</p>
-                    <p>You’ve just been assigned a new chore:</p>
-                    <p><strong>{chore.title}</strong></p>
-                    <p>— HOMI</p>
-                """,
-                text=f"Hi {user.name}, you’ve been assigned the chore: {chore.title}"
-            )
-    except Exception:
-        pass
-
     flash("Chore assigned to you.", "success")
     return redirect(url_for("main.db_test_list"))
 
