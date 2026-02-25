@@ -22,9 +22,11 @@ def _table_exists(conn, table_name):
     return table_name in inspector.get_table_names()
 
 
-def _column_exists(conn, table_name: str, column_name: str) -> bool:
-    rows = conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
-    return any(r[1] == column_name for r in rows)
+def _column_exists(conn, table_name, column_name):
+    from sqlalchemy import inspect
+    inspector = inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns(table_name)]
+    return column_name in columns
 
 
 def upgrade():
