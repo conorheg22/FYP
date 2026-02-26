@@ -1885,6 +1885,262 @@ def calendar_events():
 
     return jsonify(events)
 
+
+# ---------------------------------------------------------
+# Analytics
+# ---------------------------------------------------------
+# Household analytics: chores, expenses, inventory, and overview. All data passed to template for Chart.js.
+MEMBER_CHART_COLOURS = [
+    "#5b4ae0", "#7c6cf7", "#16a34a", "#d97706", "#0ea5e9", "#8b5cf6", "#ec4899", "#14b8a6",
+]
+
+
+def _chore_analytics_for_window(household_id: int, members: list, since: datetime):
+    """Build chore stats for a time window: per-member counts, on-time/overdue, by weekday, top/neglected titles, avg days to complete."""
+    completed_in_window = (
+        Chore.query
+        .filter_by(household_id=household_id)
+        .filter(Chore.completed == True, Chore.completed_at >= since)  # noqa: E712
+        .all()
+    )
+    member_ids = [u.id for u in members]
+    total_completed = {uid: 0 for uid in member_ids}
+    total_minutes = {uid: 0 for uid in member_ids}
+    overdue_count = {uid: 0 for uid in member_ids}
+    on_time_count = {uid: 0 for uid in member_ids}
+    by_weekday = {i: 0 for i in range(7)}  # Monday=0 .. Sunday=6
+    creation_to_completion_days = {uid: [] for uid in member_ids}
+
+    for c in completed_in_window:
+        uid = c.completed_by_id or c.assigned_to_user_id
+        if uid not in member_ids:
+            continue
+        total_completed[uid] = total_completed.get(uid, 0) + 1
+        total_minutes[uid] = total_minutes.get(uid, 0) + (c.estimated_minutes or 0)
+        if getattr(c, "was_overdue", False):
+            overdue_count[uid] = overdue_count.get(uid, 0) + 1
+        else:
+            on_time_count[uid] = on_time_count.get(uid, 0) + 1
+        if c.completed_at:
+            by_weekday[(c.completed_at.weekday() + 1) % 7] = by_weekday.get((c.completed_at.weekday() + 1) % 7, 0) + 1
+        if c.created_at and c.completed_at:
+            delta = (c.completed_at.date() - c.created_at.date()).days
+            creation_to_completion_days[uid].append(delta)
+
+    top_chores = {}
+    for c in completed_in_window:
+        top_chores[c.title] = top_chores.get(c.title, 0) + 1
+    top_5_completed = sorted(top_chores.items(), key=lambda x: -x[1])[:5]
+
+    neglected = (
+        Chore.query
+        .filter_by(household_id=household_id)
+        .filter(Chore.completed == False, Chore.due_date != None, Chore.due_date < date.today())  # noqa: E712, E711
+        .all()
+    )
+    neglected_by_title = {}
+    for c in neglected:
+        neglected_by_title[c.title] = neglected_by_title.get(c.title, 0) + 1
+    top_5_neglected = sorted(neglected_by_title.items(), key=lambda x: -x[1])[:5]
+
+    avg_days_to_complete = {}
+    for uid in member_ids:
+        days_list = creation_to_completion_days.get(uid) or []
+        avg_days_to_complete[uid] = round(sum(days_list) / len(days_list), 1) if days_list else None
+
+    return {
+        "members": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "total_completed": total_completed.get(u.id, 0),
+                "total_minutes": total_minutes.get(u.id, 0),
+                "overdue_count": overdue_count.get(u.id, 0),
+                "on_time_count": on_time_count.get(u.id, 0),
+                "avg_days_to_complete": avg_days_to_complete.get(u.id),
+                "is_me": False,
+            }
+            for u in members
+        ],
+        "by_weekday": [by_weekday.get(i, 0) for i in range(7)],
+        "top_5_completed": top_5_completed,
+        "top_5_neglected": top_5_neglected,
+    }
+
+
+@main_bp.route("/analytics")
+@login_required
+@household_required
+def analytics():
+    """I use this route to show household analytics: chores, expenses, inventory, and overview."""
+    user = User.query.get(session["user_id"])
+    household = get_active_household()
+    members = get_household_members(household.id)
+    current_user_id = session.get("user_id")
+    today = date.today()
+
+    # --- Chore analytics (30 and 90 days) ---
+    since_30 = datetime.combine(today - timedelta(days=30), datetime.min.time())
+    since_90 = datetime.combine(today - timedelta(days=90), datetime.min.time())
+    chore_30 = _chore_analytics_for_window(household.id, members, since_30)
+    chore_90 = _chore_analytics_for_window(household.id, members, since_90)
+    for m in chore_30["members"]:
+        m["is_me"] = m["id"] == current_user_id
+    for m in chore_90["members"]:
+        m["is_me"] = m["id"] == current_user_id
+
+    # --- Expense analytics ---
+    expenses_all = (
+        Expense.query
+        .filter_by(household_id=household.id)
+        .all()
+    )
+    total_spend_all_time = sum(float(e.total_amount) for e in expenses_all)
+
+    spend_by_month = []
+    year, month = today.year, today.month
+    for _ in range(6):
+        month_start = date(year, month, 1)
+        if month >= 12:
+            next_month_start = date(year + 1, 1, 1)
+        else:
+            next_month_start = date(year, month + 1, 1)
+        total = 0.0
+        for e in expenses_all:
+            if not e.created_at:
+                continue
+            ed = e.created_at.date() if hasattr(e.created_at, "date") else e.created_at
+            if month_start <= ed < next_month_start:
+                total += float(e.total_amount)
+        spend_by_month.append({
+            "label": month_start.strftime("%b %Y"),
+            "total": round(total, 2),
+        })
+        month -= 1
+        if month < 1:
+            month, year = 12, year - 1
+    spend_by_month.reverse()
+
+    current_month_start = today.replace(day=1)
+    current_month_spend = 0.0
+    for e in expenses_all:
+        if not e.created_at:
+            continue
+        ed = e.created_at.date() if hasattr(e.created_at, "date") else e.created_at
+        if ed >= current_month_start:
+            current_month_spend += float(e.total_amount)
+
+    amount_paid = {u.id: 0.0 for u in members}
+    amount_owed = {u.id: 0.0 for u in members}
+    for e in expenses_all:
+        amount_paid[e.paid_by_user_id] = amount_paid.get(e.paid_by_user_id, 0) + float(e.total_amount)
+        for share in e.shares:
+            amount_owed[share.user_id] = amount_owed.get(share.user_id, 0) + float(share.amount_owed)
+    expense_balance = [
+        {
+            "id": u.id,
+            "name": u.name,
+            "paid": round(amount_paid.get(u.id, 0), 2),
+            "owed": round(amount_owed.get(u.id, 0), 2),
+            "net": round(amount_paid.get(u.id, 0) - amount_owed.get(u.id, 0), 2),
+            "is_me": u.id == current_user_id,
+        }
+        for u in members
+    ]
+
+    # --- Inventory analytics ---
+    inventory_items = (
+        InventoryItem.query
+        .filter_by(household_id=household.id)
+        .all()
+    )
+    expiring_soon_count = 0
+    expired_count = 0
+    for item in inventory_items:
+        if not getattr(item, "expiry_date", None):
+            continue
+        if item.expiry_date < today:
+            expired_count += 1
+        elif today <= item.expiry_date <= today + timedelta(days=7):
+            expiring_soon_count += 1
+    category_breakdown = {}
+    for item in inventory_items:
+        cat = (getattr(item, "category", None) or "").strip() or "Uncategorised"
+        category_breakdown[cat] = category_breakdown.get(cat, 0) + 1
+    low_stock = sorted(
+        [i for i in inventory_items if (getattr(i, "quantity", 0) or 0) <= 2],
+        key=lambda i: (getattr(i, "quantity", 0) or 0),
+    )
+    expiring_soon_items = []
+    for item in inventory_items:
+        if not getattr(item, "expiry_date", None):
+            continue
+        if today <= item.expiry_date <= today + timedelta(days=7):
+            expiring_soon_items.append({
+                "name": item.name,
+                "expiry_date": item.expiry_date,
+                "days_left": (item.expiry_date - today).days,
+            })
+
+    # --- Household overview (summary cards) ---
+    total_chores_done_all_time = Chore.query.filter_by(household_id=household.id).filter(Chore.completed == True).count()  # noqa: E712
+    overdue_now = (
+        Chore.query
+        .filter_by(household_id=household.id)
+        .filter(Chore.completed == False, Chore.due_date != None, Chore.due_date < today)  # noqa: E712, E711
+        .count()
+    )
+    this_month_start = today.replace(day=1)
+    chores_this_month = (
+        Chore.query
+        .filter_by(household_id=household.id)
+        .filter(Chore.completed == True, Chore.completed_at >= datetime.combine(this_month_start, datetime.min.time()))  # noqa: E712
+        .all()
+    )
+    completions_this_month_by_user = {}
+    for c in chores_this_month:
+        uid = c.completed_by_id or c.assigned_to_user_id
+        if uid:
+            completions_this_month_by_user[uid] = completions_this_month_by_user.get(uid, 0) + 1
+    most_active_this_month_id = None
+    most_active_count = 0
+    for uid, cnt in completions_this_month_by_user.items():
+        if cnt > most_active_count:
+            most_active_count = cnt
+            most_active_this_month_id = uid
+    most_active_member = next((u for u in members if u.id == most_active_this_month_id), None)
+    top_streak_member = max(members, key=lambda u: u.streak_count or 0) if members else None
+
+    return render_template(
+        "analytics.html",
+        household=household,
+        user=user,
+        current_user_id=current_user_id,
+        members=members,
+        member_colours=MEMBER_CHART_COLOURS,
+        # Overview
+        total_chores_done_all_time=total_chores_done_all_time,
+        overdue_now=overdue_now,
+        total_spend_all_time=round(total_spend_all_time, 2),
+        current_month_spend=round(current_month_spend, 2),
+        most_active_member=most_active_member,
+        most_active_count=most_active_count,
+        top_streak_member=top_streak_member,
+        # Chores (30 & 90)
+        chore_30=chore_30,
+        chore_90=chore_90,
+        # Expenses
+        spend_by_month=spend_by_month,
+        expense_balance=expense_balance,
+        # Inventory
+        expiring_soon_count=expiring_soon_count,
+        expired_count=expired_count,
+        category_breakdown=category_breakdown,
+        low_stock=low_stock,
+        expiring_soon_items=expiring_soon_items,
+    )
+
+
 # ---------------------------------------------------------
 # Notifications API (Toast popups)
 # ---------------------------------------------------------
