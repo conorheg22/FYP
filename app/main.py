@@ -753,6 +753,11 @@ def db_test_toggle(chore_id: int):
 
     total_points, new_streak = _award_points_for_completion(chore, user, today)
     chore.points_awarded = total_points
+    # Cancel any pending swap requests for this chore since it's now done
+    ChoreSwapRequest.query.filter(
+        ChoreSwapRequest.offered_chore_id == chore.id,
+        ChoreSwapRequest.status == "pending",
+    ).update({"status": "declined"})
     # Reference: SQLAlchemy (2024) Updating and deleting rows with the ORM. https://docs.sqlalchemy.org/en/21/orm/tutorial.html#updating-and-deleting-with-the-orm
     db.session.commit()
 
@@ -802,6 +807,12 @@ def db_test_delete(chore_id: int):
     if chore.assigned_to_user_id != session.get("user_id"):
         flash("You can only delete chores assigned to you.", "danger")
         return redirect(url_for("main.db_test_list"))
+
+    # Decline all pending swap requests for this chore before deleting it
+    ChoreSwapRequest.query.filter(
+        ChoreSwapRequest.offered_chore_id == chore.id,
+        ChoreSwapRequest.status == "pending",
+    ).update({"status": "declined"})
 
     db.session.delete(chore)
     db.session.commit()
