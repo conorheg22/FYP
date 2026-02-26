@@ -366,11 +366,12 @@ class ChoreSwapRequest(db.Model):
         index=True,
     )
 
-    # The chore from the recipient that could be swapped (in the current logic this can be unused/placeholder).
+    # The chore from the recipient that could be swapped. Nullable because we do one-way swaps
+    # (give away my chore), not chore-for-chore trades; the recipient does not offer a chore in return.
     requested_chore_id = db.Column(
         db.Integer,
         db.ForeignKey("chore.id"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
 

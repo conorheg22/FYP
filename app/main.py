@@ -460,12 +460,8 @@ def db_test_list():
         .all()
     )
 
-    completed_chores = (
-        base_query
-        .filter(Chore.completed == True)  # noqa: E712
-        .order_by(Chore.created_at.desc())
-        .all()
-    )
+    # Completed chores are not shown in the main list view; they drop off once done.
+    completed_chores = []
 
     active_chores = overdue_chores + upcoming_chores + no_date_chores
     users = get_household_members(household.id)
@@ -721,6 +717,13 @@ def db_test_toggle(chore_id: int):
         abort(404)
 
     current_user_id = session.get("user_id")
+    if (
+        chore.assigned_to_user_id is not None
+        and chore.assigned_to_user_id != current_user_id
+    ):
+        flash("You can only complete chores assigned to you.", "danger")
+        return redirect(url_for("main.db_test_list"))
+
     user = User.query.get(current_user_id)
     today = date.today()
 
@@ -1068,6 +1071,13 @@ def accept_chore_swap(swap_id: int):
 
     swap.status = "accepted"
     swap.responded_at = datetime.utcnow()
+
+    # Cancel all other pending swaps for this chore so no ghost requests remain.
+    ChoreSwapRequest.query.filter(
+        ChoreSwapRequest.offered_chore_id == offered.id,
+        ChoreSwapRequest.id != swap.id,
+        ChoreSwapRequest.status == "pending",
+    ).update({"status": "declined"})
 
     db.session.commit()
 
