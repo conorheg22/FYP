@@ -81,4 +81,18 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        # Automatically add any missing columns on startup — safe to run on every deploy
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            for sql in [
+                "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid BOOLEAN NOT NULL DEFAULT FALSE",
+                "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid_method VARCHAR(40)",
+                "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP",
+            ]:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+
     return app
