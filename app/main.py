@@ -12,6 +12,7 @@ Contains:
 # Flask pieces we use for routes, templates, redirects, and JSON responses.
 from flask import (
     Blueprint,
+    current_app,
     make_response,
     render_template,
     redirect,
@@ -21,6 +22,7 @@ from flask import (
     flash,
     session,
     jsonify,
+    send_from_directory,
 )
 # Our database models: users, households, chores, expenses, swaps, inventory, notifications.
 from .models import (
@@ -45,6 +47,24 @@ from datetime import date, datetime, timedelta, time, timezone
 
 # This blueprint holds all our routes; we register it in __init__.py.
 main_bp = Blueprint("main", __name__)
+
+
+# ---------------------------------------------------------
+# PWA: service worker and manifest (served from root for correct scope)
+# ---------------------------------------------------------
+@main_bp.route("/sw.js")
+def service_worker():
+    """Serve the service worker from root so its scope covers the whole site."""
+    resp = send_from_directory(current_app.static_folder, "sw.js", mimetype="application/javascript")
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
+@main_bp.route("/manifest.webmanifest")
+def manifest():
+    """Serve the web app manifest from root for PWA install."""
+    resp = send_from_directory(current_app.static_folder, "manifest.webmanifest", mimetype="application/manifest+json")
+    return resp
 
 
 def _time_ago(dt):

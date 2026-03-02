@@ -1,0 +1,26 @@
+{
+  "name": "HOMI — Making Shared Living Simple",
+  "short_name": "HOMI",
+  "description": "Chores, inventory, expenses, and motivation — one place for your household.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#5b4ae0",
+  "background_color": "#f5f6fb",
+  "icons": [
+    {
+      "src": "/static/img/homi-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/homi-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"]
+}
