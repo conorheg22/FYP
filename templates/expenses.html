@@ -2,6 +2,15 @@
 
 {% block title %}Expenses{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+  /* So "Mark paid" dropdown is not covered by the next list item */
+  .expense-owed-list .list-group-item { position: relative; }
+  .expense-owed-list .dropdown-menu { z-index: 1060; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="my-4">
   <div class="page-header">
@@ -150,7 +159,7 @@
       <h6 class="fw-bold mb-2">What I owe (and what for)</h6>
 
       {% if my_owed_lines %}
-        <ul class="list-group">
+        <ul class="list-group expense-owed-list">
           {% for line in my_owed_lines %}
             <li class="list-group-item">
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
