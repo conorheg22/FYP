@@ -1675,11 +1675,21 @@ def shopping_add():
 @login_required
 @household_required
 def shopping_add_from_inventory(item_id: int):
-    """I use this route to add an inventory item to the shopping list when it is low or out of stock."""
+    """I use this route to add an inventory item to the shopping list when it is low or out of stock.
+
+    Behaviour for out-of-stock items:
+    - When an inventory item has quantity <= 0 and is added to the shopping list, I remove it from the
+      inventory so it no longer appears on the inventory page.
+    - The item then lives on the shopping list; if the user later deletes it from the shopping list,
+      it does not automatically reappear in the inventory. They must add it back manually (either via
+      the inventory form or via the “Update stock” flow).
+    """
     household = get_active_household()
     inv_item = InventoryItem.query.get_or_404(item_id)
     if inv_item.household_id != household.id:
         abort(404)
+
+    is_out_of_stock = (inv_item.quantity or 0) <= 0
 
     # Avoid duplicate: same name already on list (optional — could allow multiple rows).
     existing = (
@@ -1691,7 +1701,11 @@ def shopping_add_from_inventory(item_id: int):
         existing.quantity = max(existing.quantity, inv_item.quantity or 1)
         existing.unit = inv_item.unit or existing.unit
         existing.category = inv_item.category or existing.category
-        existing.inventory_item_id = inv_item.id
+        # Only keep a live link to the inventory item if it is still stocked.
+        if not is_out_of_stock:
+            existing.inventory_item_id = inv_item.id
+        else:
+            existing.inventory_item_id = None
         db.session.commit()
         flash(f"Updated quantity for “{inv_item.name}” on the shopping list.", "info")
     else:
@@ -1701,11 +1715,19 @@ def shopping_add_from_inventory(item_id: int):
             quantity=max(1, (inv_item.quantity or 0) + 1),
             unit=inv_item.unit,
             category=inv_item.category,
-            inventory_item_id=inv_item.id,
+            # Only keep a live link when the inventory item is still present in inventory.
+            inventory_item_id=None if is_out_of_stock else inv_item.id,
         )
         db.session.add(sl_item)
         db.session.commit()
         flash(f"Added “{inv_item.name}” to the shopping list.", "success")
+
+    # For out-of-stock items, I remove them from the inventory so they no longer appear on the
+    # inventory page. The user can bring them back by either manually adding a new inventory item
+    # or via the “Update stock” flow on the shopping list.
+    if is_out_of_stock:
+        db.session.delete(inv_item)
+        db.session.commit()
     return redirect(url_for("main.shopping_list"))
 
 
@@ -1747,16 +1769,35 @@ def shopping_update_stock(item_id: int):
             to_add = item.quantity
     except ValueError:
         to_add = item.quantity
+    inv = None
     if item.inventory_item_id:
         inv = InventoryItem.query.get(item.inventory_item_id)
-        if inv and inv.household_id == household.id:
-            inv.quantity = (inv.quantity or 0) + to_add
-            if hasattr(inv, "use_count"):
-                inv.use_count = (inv.use_count or 0) + 1
-            db.session.commit()
-            flash(f"Updated stock: “{inv.name}” +{to_add}.", "success")
+        if inv and inv.household_id != household.id:
+            inv = None
+
+    # If there is an existing linked inventory item for this household, update it in place.
+    if inv is not None:
+        inv.quantity = (inv.quantity or 0) + to_add
+        if hasattr(inv, "use_count"):
+            inv.use_count = (inv.use_count or 0) + 1
+        db.session.commit()
+        flash(f"Updated stock: “{inv.name}” +{to_add}.", "success")
     else:
-        flash("No linked inventory item to update.", "info")
+        # If the original inventory item was removed (e.g. when adding an out-of-stock item to the
+        # shopping list), I recreate it here so the user explicitly brings it back into inventory.
+        new_inv = InventoryItem(
+            household_id=household.id,
+            name=item.name,
+            quantity=to_add,
+            unit=item.unit,
+            category=item.category,
+        )
+        db.session.add(new_inv)
+        db.session.commit()
+        # Link the shopping list item to the new inventory item for any future updates.
+        item.inventory_item_id = new_inv.id
+        db.session.commit()
+        flash(f"Added “{new_inv.name}” back to inventory with quantity {new_inv.quantity}.", "success")
     return redirect(url_for("main.shopping_list"))
 
 

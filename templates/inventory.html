@@ -209,6 +209,133 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     max-width: 320px;
   }
 
+  /* Category group headers + containers */
+  .inv-category-group {
+    border-radius: 12px;
+    margin-bottom: 16px;
+    background: transparent;
+  }
+
+  .inv-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 4px 6px 2px;
+    cursor: pointer;
+  }
+
+  .inv-category-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .inv-category-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 999px;
+    padding: 2px 10px;
+    background: #f1f3f5;
+    font-size: 0.8rem;
+    color: #495057;
+  }
+
+  .inv-category-chevron {
+    transition: transform 150ms ease;
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+
+  .inv-category-group[data-collapsed="true"] .inv-category-chevron {
+    transform: rotate(-90deg);
+  }
+
+  .inv-category-items {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .inv-category-group[data-collapsed="true"] .inv-category-items {
+    display: none;
+  }
+
+  /* View toggle + category filter bar */
+  .inv-view-toggle-group .btn {
+    padding-inline: 0.6rem;
+  }
+
+  .inv-view-toggle-group .btn.active {
+    background-color: #0d6efd;
+    color: #fff;
+  }
+
+  .inv-cat-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .inv-cat-filter {
+    border-radius: 999px;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+  }
+
+  .inv-cat-filter.active {
+    background-color: #0d6efd;
+    color: #fff;
+  }
+
+  /* Grid view */
+  #invList.inv-grid .inv-category-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  #invList.inv-grid .inv-item {
+    margin-top: 0;
+    height: 100%;
+  }
+
+  #invList.inv-grid .inv-category-group {
+    margin-bottom: 20px;
+  }
+
+  /* Expiry indicator dot */
+  .inv-expiry-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .inv-expiry-dot::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .inv-expiry-dot.green::before { background-color: #198754; }
+  .inv-expiry-dot.amber::before { background-color: #ffc107; }
+  .inv-expiry-dot.red::before { background-color: #dc3545; }
+
+  /* Sticky dashboards */
+  .inv-dashboards-sticky {
+    position: sticky;
+    top: 70px;
+    z-index: 5;
+    background: rgba(248, 249, 250, 0.96);
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
   /* Improve focus visibility without changing theme globally */
   .btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible, .homi-btn:focus-visible {
     outline: 2px solid rgba(13, 110, 253, 0.35);
@@ -266,7 +393,7 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
   {% if active_filter == "all" %}
 
     <!-- Quick dashboards -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 inv-dashboards-sticky">
       <!-- Frequently used -->
       <div class="col-12 col-lg-6">
         <div class="homi-card inv-card p-3">
@@ -478,6 +605,24 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     </div>
 
     <div class="d-flex gap-2 flex-wrap align-items-center">
+      <div class="btn-group inv-view-toggle-group" role="group" aria-label="Inventory view mode">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary inv-view-toggle active"
+          data-view-mode="list"
+          title="List view"
+        >
+          <i class="bi bi-list"></i>
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary inv-view-toggle"
+          data-view-mode="grid"
+          title="Grid view"
+        >
+          <i class="bi bi-grid-3x3-gap"></i>
+        </button>
+      </div>
       <input
         id="invSearch"
         type="search"
@@ -497,6 +642,22 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     </div>
   </div>
 
+  <!-- Category filter bar -->
+  <div class="inv-cat-filters">
+    <button type="button" class="btn btn-light inv-cat-filter active" data-cat-filter="all">
+      All
+    </button>
+    {% for c in categories %}
+      {% set key = c|lower %}
+      <button type="button" class="btn btn-light inv-cat-filter" data-cat-filter="{{ key }}">
+        {{ c }}
+      </button>
+    {% endfor %}
+    <button type="button" class="btn btn-light inv-cat-filter" data-cat-filter="uncategorised">
+      Uncategorised
+    </button>
+  </div>
+
   {% if not items %}
     <div class="homi-card inv-card p-3">
       <div class="inv-muted">
@@ -505,220 +666,244 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     </div>
   {% endif %}
 
-  <!-- Items list -->
+  <!-- Items list grouped by category -->
   <div id="invList" class="d-flex flex-column">
-    {% for item in items %}
-      {% set d = days_to_expiry.get(item.id) %}
-
-      <div
-        class="homi-card inv-card inv-item"
-        id="item-{{ item.id }}"
-        data-item
-        data-item-name="{{ item.name | lower }}"
-        data-item-qty="{{ item.quantity }}"
-        data-item-expiry="{% if d is not none %}{{ d }}{% else %}999999{% endif %}"
-      >
-        <div class="inv-item-top">
-          <div style="min-width: 240px;">
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <div class="inv-item-name">{{ item.name }}</div>
-
-              {% if item.quantity == 0 %}
-                <span class="inv-status zero">Out of stock</span>
-              {% endif %}
-
-              {% if item.expiry_date %}
-                {% if d is not none and d < 0 %}
-                  <span class="inv-status bad">Expired</span>
-                {% elif d is not none and d <= 3 %}
-                  <span class="inv-status warn">Use soon</span>
-                {% elif d is not none and d <= 7 %}
-                  <span class="inv-status warn">Expiring</span>
-                {% else %}
-                  <span class="inv-status ok">OK</span>
-                {% endif %}
-              {% endif %}
+    {% for category, cat_items in grouped_items.items() %}
+      {% if cat_items %}
+        {% set cat_key = category|lower %}
+        <div class="inv-category-group" data-category-group="{{ cat_key }}">
+          <div class="inv-category-header" data-category-toggle>
+            <div class="inv-category-title">
+              <span>{{ category }}</span>
+              <span class="inv-category-pill">
+                {{ cat_items|length }} item{{ 's' if cat_items|length != 1 }}
+              </span>
             </div>
+            <span class="inv-category-chevron">
+              <i class="bi bi-chevron-down"></i>
+            </span>
+          </div>
+          <div class="inv-category-items" data-category-items>
+            {% for item in cat_items %}
+              {% set d = days_to_expiry.get(item.id) %}
+              <div
+                class="homi-card inv-card inv-item"
+                id="item-{{ item.id }}"
+                data-item
+                data-item-name="{{ item.name | lower }}"
+                data-item-qty="{{ item.quantity }}"
+                data-item-expiry="{% if d is not none %}{{ d }}{% else %}999999{% endif %}"
+                data-item-category="{{ cat_key }}"
+              >
+                <div class="inv-item-top">
+                  <div style="min-width: 240px;">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <div class="inv-item-name">{{ item.name }}</div>
 
-            <div class="inv-meta">
-              <span class="inv-chip">Qty <strong>{{ item.quantity }}</strong>{% if item.unit %} {{ item.unit }}{% endif %}</span>
+                      {% if item.quantity == 0 %}
+                        <span class="inv-status zero">Out of stock</span>
+                      {% endif %}
 
-              {% if item.location %}
-                <span class="inv-chip">📍 <strong>{{ item.location }}</strong></span>
-              {% endif %}
+                      {% if item.expiry_date %}
+                        {% if d is not none and d < 0 %}
+                          <span class="inv-status bad">Expired</span>
+                        {% elif d is not none and d <= 7 %}
+                          <span class="inv-status warn">Expiring soon</span>
+                        {% else %}
+                          <span class="inv-status ok">OK</span>
+                        {% endif %}
+                      {% endif %}
+                    </div>
 
-              {% if item.category %}
-                <span class="inv-chip">🏷️ <strong>{{ item.category }}</strong>{% if item.sub_category %} / {{ item.sub_category }}{% endif %}</span>
-              {% endif %}
+                    <div class="inv-meta">
+                      <span class="inv-chip">Qty <strong>{{ item.quantity }}</strong>{% if item.unit %} {{ item.unit }}{% endif %}</span>
 
-              {% if item.expiry_date %}
-                <span class="inv-chip">
-                  {% if item.expiry_type == "use_by" %}
-                    ⏳ Use-by
-                  {% elif item.expiry_type == "best_before" %}
-                    ⏳ Best-before
-                  {% else %}
-                    ⏳ Expiry
-                  {% endif %}
-                  <strong>{{ item.expiry_date }}</strong>
-                  {% if d is not none %}
-                    <span class="dot">•</span>
-                    {% if d < 0 %}
-                      {{ (-d) }} day(s) ago
-                    {% else %}
-                      {{ d }} day(s) left
+                      {% if item.location %}
+                        <span class="inv-chip">📍 <strong>{{ item.location }}</strong></span>
+                      {% endif %}
+
+                      {% if item.category %}
+                        <span class="inv-chip">🏷️ <strong>{{ item.category }}</strong>{% if item.sub_category %} / {{ item.sub_category }}{% endif %}</span>
+                      {% endif %}
+
+                      {% if item.expiry_date %}
+                        <span class="inv-chip">
+                          <span
+                            class="inv-expiry-dot
+                              {% if d is not none and d < 0 %}red
+                              {% elif d is not none and d <= 7 %}amber
+                              {% else %}green{% endif %}"
+                          >
+                            {% if item.expiry_type == "use_by" %}
+                              Use-by
+                            {% elif item.expiry_type == "best_before" %}
+                              Best-before
+                            {% else %}
+                              Expiry
+                            {% endif %}
+                            <strong>{{ item.expiry_date }}</strong>
+                          </span>
+                          {% if d is not none %}
+                            <span class="dot">•</span>
+                            {% if d < 0 %}
+                              {{ (-d) }} day(s) ago
+                            {% else %}
+                              {{ d }} day(s) left
+                            {% endif %}
+                          {% endif %}
+                        </span>
+                      {% endif %}
+
+                      {% if item.notes %}
+                        <span class="inv-chip">📝 <strong>{{ item.notes }}</strong></span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="inv-actions">
+                    <form method="POST" action="{{ url_for('main.inventory_use', item_id=item.id) }}" class="m-0">
+                      <button type="submit" class="btn btn-sm btn-outline-primary" title="Record one use (decrement quantity by 1)">
+                        ⟲ Use
+                      </button>
+                    </form>
+
+                    {% set show_add_to_shop = (item.quantity <= (item.min_stock if item.min_stock is not none else 0)) %}
+                    {% if show_add_to_shop %}
+                      <form method="POST" action="{{ url_for('main.shopping_add_from_inventory', item_id=item.id) }}" class="m-0">
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="Add to shared shopping list">
+                          <i class="bi bi-cart-plus"></i> Add to Shopping List
+                        </button>
+                      </form>
                     {% endif %}
-                  {% endif %}
-                </span>
-              {% endif %}
 
-              {% if item.notes %}
-                <span class="inv-chip">📝 <strong>{{ item.notes }}</strong></span>
-              {% endif %}
-            </div>
-          </div>
+                    <button
+                      class="btn btn-sm btn-outline-secondary"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#editItem{{ item.id }}"
+                      aria-expanded="false"
+                      aria-controls="editItem{{ item.id }}"
+                      title="Edit item"
+                    >
+                      ✎ Edit
+                    </button>
 
-          <div class="inv-actions">
-            <form method="POST" action="{{ url_for('main.inventory_use', item_id=item.id) }}" class="m-0">
-              <button type="submit" class="btn btn-sm btn-outline-primary" title="Record one use (decrement quantity by 1)">
-                ⟲ Use
-              </button>
-            </form>
+                    <form method="POST" action="{{ url_for('main.inventory_delete', item_id=item.id) }}" class="m-0">
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        type="submit"
+                        onclick="return confirm('Delete this inventory item?');"
+                        title="Delete item"
+                      >
+                        🗑 Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
 
-            {% set show_add_to_shop = (item.quantity <= (item.min_stock if item.min_stock is not none else 0)) %}
-            {% if show_add_to_shop %}
-              <form method="POST" action="{{ url_for('main.shopping_add_from_inventory', item_id=item.id) }}" class="m-0">
-                <button type="submit" class="btn btn-sm btn-outline-success" title="Add to shared shopping list">
-                  <i class="bi bi-cart-plus"></i> Add to Shopping List
-                </button>
-              </form>
-            {% endif %}
+                <div class="collapse inv-edit-panel" id="editItem{{ item.id }}">
+                  <div class="inv-edit-header">
+                    <div class="title">Edit item</div>
 
-            <button
-              class="btn btn-sm btn-outline-secondary"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#editItem{{ item.id }}"
-              aria-expanded="false"
-              aria-controls="editItem{{ item.id }}"
-              title="Edit item"
-            >
-              ✎ Edit
-            </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#editItem{{ item.id }}"
+                      aria-controls="editItem{{ item.id }}"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
 
-            <form method="POST" action="{{ url_for('main.inventory_delete', item_id=item.id) }}" class="m-0">
-              <button
-                class="btn btn-sm btn-outline-danger"
-                type="submit"
-                onclick="return confirm('Delete this inventory item?');"
-                title="Delete item"
-              >
-                🗑 Delete
-              </button>
-            </form>
+                  <form method="POST" action="{{ url_for('main.inventory_edit', item_id=item.id) }}" class="row g-3">
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="inv_name_{{ item.id }}">Name</label>
+                      <input id="inv_name_{{ item.id }}" class="form-control" name="name" value="{{ item.name }}" required>
+                    </div>
+
+                    <div class="col-6 col-md-2">
+                      <label class="form-label" for="inv_qty_{{ item.id }}">Quantity</label>
+                      <input id="inv_qty_{{ item.id }}" class="form-control" name="quantity" type="number" min="0" value="{{ item.quantity }}">
+                    </div>
+
+                    <div class="col-6 col-md-2">
+                      <label class="form-label" for="inv_unit_{{ item.id }}">Unit</label>
+                      <input id="inv_unit_{{ item.id }}" class="form-control" name="unit" value="{{ item.unit or '' }}" placeholder="Unit">
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="inv_notes_{{ item.id }}">Notes</label>
+                      <input id="inv_notes_{{ item.id }}" class="form-control" name="notes" value="{{ item.notes or '' }}" placeholder="Notes">
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="inv_cat_{{ item.id }}">Category</label>
+                      <select id="inv_cat_{{ item.id }}" class="form-select" name="category">
+                        <option value="">—</option>
+                        {% for c in categories %}
+                          <option value="{{ c }}" {% if item.category == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="inv_subcat_{{ item.id }}">Sub-category</label>
+                      <input id="inv_subcat_{{ item.id }}" class="form-control" name="sub_category" value="{{ item.sub_category or '' }}">
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="inv_loc_{{ item.id }}">Location</label>
+                      <select id="inv_loc_{{ item.id }}" class="form-select" name="location">
+                        <option value="">—</option>
+                        {% for l in locations %}
+                          <option value="{{ l }}" {% if item.location == l %}selected{% endif %}>{{ l }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                      <label class="form-label" for="inv_exp_type_{{ item.id }}">Expiry type</label>
+                      <select id="inv_exp_type_{{ item.id }}" class="form-select" name="expiry_type">
+                        <option value="">—</option>
+                        <option value="best_before" {% if item.expiry_type=="best_before" %}selected{% endif %}>Best-before</option>
+                        <option value="use_by" {% if item.expiry_type=="use_by" %}selected{% endif %}>Use-by</option>
+                      </select>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                      <label class="form-label" for="inv_exp_date_{{ item.id }}">Expiry date</label>
+                      <input
+                        id="inv_exp_date_{{ item.id }}"
+                        class="form-control"
+                        name="expiry_date"
+                        type="date"
+                        value="{% if item.expiry_date %}{{ item.expiry_date }}{% endif %}"
+                      >
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#editItem{{ item.id }}"
+                        aria-controls="editItem{{ item.id }}"
+                      >
+                        Cancel
+                      </button>
+
+                      <button class="homi-btn homi-btn-primary" type="submit">
+                        Save changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
           </div>
         </div>
-
-        <div class="collapse inv-edit-panel" id="editItem{{ item.id }}">
-          <div class="inv-edit-header">
-            <div class="title">Edit item</div>
-
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              data-bs-toggle="collapse"
-              data-bs-target="#editItem{{ item.id }}"
-              aria-controls="editItem{{ item.id }}"
-            >
-              ✕ Close
-            </button>
-          </div>
-
-          <form method="POST" action="{{ url_for('main.inventory_edit', item_id=item.id) }}" class="row g-3">
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="inv_name_{{ item.id }}">Name</label>
-              <input id="inv_name_{{ item.id }}" class="form-control" name="name" value="{{ item.name }}" required>
-            </div>
-
-            <div class="col-6 col-md-2">
-              <label class="form-label" for="inv_qty_{{ item.id }}">Quantity</label>
-              <input id="inv_qty_{{ item.id }}" class="form-control" name="quantity" type="number" min="0" value="{{ item.quantity }}">
-            </div>
-
-            <div class="col-6 col-md-2">
-              <label class="form-label" for="inv_unit_{{ item.id }}">Unit</label>
-              <input id="inv_unit_{{ item.id }}" class="form-control" name="unit" value="{{ item.unit or '' }}" placeholder="Unit">
-            </div>
-
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="inv_notes_{{ item.id }}">Notes</label>
-              <input id="inv_notes_{{ item.id }}" class="form-control" name="notes" value="{{ item.notes or '' }}" placeholder="Notes">
-            </div>
-
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="inv_cat_{{ item.id }}">Category</label>
-              <select id="inv_cat_{{ item.id }}" class="form-select" name="category">
-                <option value="">—</option>
-                {% for c in categories %}
-                  <option value="{{ c }}" {% if item.category == c %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="inv_subcat_{{ item.id }}">Sub-category</label>
-              <input id="inv_subcat_{{ item.id }}" class="form-control" name="sub_category" value="{{ item.sub_category or '' }}">
-            </div>
-
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="inv_loc_{{ item.id }}">Location</label>
-              <select id="inv_loc_{{ item.id }}" class="form-select" name="location">
-                <option value="">—</option>
-                {% for l in locations %}
-                  <option value="{{ l }}" {% if item.location == l %}selected{% endif %}>{{ l }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="col-6 col-md-3">
-              <label class="form-label" for="inv_exp_type_{{ item.id }}">Expiry type</label>
-              <select id="inv_exp_type_{{ item.id }}" class="form-select" name="expiry_type">
-                <option value="">—</option>
-                <option value="best_before" {% if item.expiry_type=="best_before" %}selected{% endif %}>Best-before</option>
-                <option value="use_by" {% if item.expiry_type=="use_by" %}selected{% endif %}>Use-by</option>
-              </select>
-            </div>
-
-            <div class="col-6 col-md-3">
-              <label class="form-label" for="inv_exp_date_{{ item.id }}">Expiry date</label>
-              <input
-                id="inv_exp_date_{{ item.id }}"
-                class="form-control"
-                name="expiry_date"
-                type="date"
-                value="{% if item.expiry_date %}{{ item.expiry_date }}{% endif %}"
-              >
-            </div>
-
-            <div class="col-12 d-flex justify-content-end gap-2">
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                data-bs-toggle="collapse"
-                data-bs-target="#editItem{{ item.id }}"
-                aria-controls="editItem{{ item.id }}"
-              >
-                Cancel
-              </button>
-
-              <button class="homi-btn homi-btn-primary" type="submit">
-                Save changes
-              </button>
-            </div>
-          </form>
-        </div>
-
-      </div>
+      {% endif %}
     {% endfor %}
   </div>
 
@@ -736,6 +921,10 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     const sortSelect = document.getElementById("invSort");
     const list = document.getElementById("invList");
     const countEl = document.getElementById("invCount");
+    const viewToggles = document.querySelectorAll(".inv-view-toggle");
+    const catFilterButtons = document.querySelectorAll(".inv-cat-filter");
+
+    let activeCategoryFilter = "all";
 
     function getItems() {
       return Array.from(list.querySelectorAll("[data-item]"));
@@ -750,14 +939,22 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
       const q = (searchInput.value || "").trim().toLowerCase();
       getItems().forEach(el => {
         const name = el.getAttribute("data-item-name") || "";
-        el.style.display = name.includes(q) ? "" : "none";
+        const cat = (el.getAttribute("data-item-category") || "").toLowerCase();
+        const matchesSearch = name.includes(q);
+        const matchesCategory = (activeCategoryFilter === "all" || cat === activeCategoryFilter);
+        el.style.display = (matchesSearch && matchesCategory) ? "" : "none";
+      });
+      // Hide empty category groups when filters/search remove all children.
+      Array.from(list.querySelectorAll(".inv-category-group")).forEach(group => {
+        const items = Array.from(group.querySelectorAll("[data-item]"));
+        const anyVisible = items.some(el => el.style.display !== "none");
+        group.style.display = anyVisible ? "" : "none";
       });
       updateCount();
     }
 
     function applySort() {
       const mode = sortSelect.value;
-      const items = getItems();
 
       const getName = (el) => (el.getAttribute("data-item-name") || "");
       const getQty = (el) => parseInt(el.getAttribute("data-item-qty") || "0", 10);
@@ -774,7 +971,11 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
 
       if (!cmp) return;
 
-      items.sort(cmp).forEach(el => list.appendChild(el));
+      // Sort within each category group so grouping stays intact.
+      Array.from(list.querySelectorAll("[data-category-items]")).forEach(container => {
+        const items = Array.from(container.querySelectorAll("[data-item]"));
+        items.sort(cmp).forEach(el => container.appendChild(el));
+      });
     }
 
     if (searchInput) {
@@ -786,6 +987,45 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
         applySearch();
       });
     }
+
+    // View toggle (list vs grid)
+    if (viewToggles && viewToggles.length) {
+      viewToggles.forEach(btn => {
+        btn.addEventListener("click", function () {
+          const mode = this.getAttribute("data-view-mode");
+          viewToggles.forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+          if (mode === "grid") {
+            list.classList.add("inv-grid");
+          } else {
+            list.classList.remove("inv-grid");
+          }
+        });
+      });
+    }
+
+    // Category filter bar
+    if (catFilterButtons && catFilterButtons.length) {
+      catFilterButtons.forEach(btn => {
+        btn.addEventListener("click", function () {
+          const value = (this.getAttribute("data-cat-filter") || "all").toLowerCase();
+          activeCategoryFilter = value;
+          catFilterButtons.forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+          applySearch();
+        });
+      });
+    }
+
+    // Collapsible category groups
+    Array.from(list.querySelectorAll(".inv-category-header[data-category-toggle]")).forEach(header => {
+      header.addEventListener("click", function () {
+        const group = this.closest(".inv-category-group");
+        if (!group) return;
+        const collapsed = group.getAttribute("data-collapsed") === "true";
+        group.setAttribute("data-collapsed", collapsed ? "false" : "true");
+      });
+    });
 
     // Hash → auto-open edit (keep your existing behavior)
     (function () {
