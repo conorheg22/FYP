@@ -323,6 +323,13 @@ class ExpenseShare(db.Model):
     # I store this as a float because it represents money.
     amount_owed = db.Column(db.Float, nullable=False)
 
+    # Whether this person has paid back their share
+    paid = db.Column(db.Boolean, default=False, nullable=False, server_default="false")
+    # How they paid: "cash", "revolut", or "bank_transfer"
+    paid_method = db.Column(db.String(40), nullable=True)
+    # When they paid
+    paid_at = db.Column(db.DateTime, nullable=True)
+
 
 # ---------------------------------------------------------
 # ChoreSwapRequest

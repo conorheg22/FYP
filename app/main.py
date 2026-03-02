@@ -12,6 +12,7 @@ Contains:
 # Flask pieces we use for routes, templates, redirects, and JSON responses.
 from flask import (
     Blueprint,
+    make_response,
     render_template,
     redirect,
     url_for,
@@ -40,7 +41,7 @@ from .models import CHORE_REPEAT_TYPES
 import random
 import string
 from functools import wraps
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, time, timezone
 
 # This blueprint holds all our routes; we register it in __init__.py.
 main_bp = Blueprint("main", __name__)
@@ -155,6 +156,12 @@ def get_household_members(household_id: int):
     )
 
 
+def _is_household_admin(user_id):
+    """True if the user has role 'admin' (for edit/delete/assign-other permissions)."""
+    u = User.query.get(user_id) if user_id else None
+    return bool(u and u.role and str(u.role).strip().lower() == "admin")
+
+
 # ---------------------------------------------------------
 # Notifications helpers
 # ---------------------------------------------------------
@@ -190,6 +197,22 @@ def create_notification(
     # I skip creating it if the same unread notification already exists.
     if existing:
         return
+
+    # For chore reminder/due/overdue, also skip if we already sent this exact notification today (UTC)
+    # so that marking as read on page visit doesn't cause a new one on next load.
+    if type in ("chore_due", "chore_overdue", "chore_reminder") and user_id is not None:
+        _utc_now = datetime.now(timezone.utc)
+        _utc_today_start = datetime.combine(_utc_now.date(), time.min)
+        _utc_today_end = _utc_today_start + timedelta(days=1)
+        already_today = (
+            Notification.query
+            .filter_by(household_id=household_id, user_id=user_id, type=type)
+            .filter(Notification.message == message)
+            .filter(Notification.created_at >= _utc_today_start, Notification.created_at < _utc_today_end)
+            .first()
+        )
+        if already_today:
+            return
 
     n = Notification(
         household_id=household_id,
@@ -389,43 +412,86 @@ def db_test_list():
 
     base_query = Chore.query.filter_by(household_id=household.id)
 
-    # I create notifications for chores that are due today or already overdue.
+    # "Today" in UTC so we match Notification.created_at (stored in UTC) and avoid duplicates across timezones.
+    _utc_today = datetime.now(timezone.utc).date()
+    _utc_today_start = datetime.combine(_utc_today, time.min)
+    _utc_today_end = _utc_today_start + timedelta(days=1)
+
+    # I create notifications for chores that are due today or already overdue (at most one per chore per day).
+    # Skip unassigned chores so we never create notifications with user_id=None.
     for c in base_query.filter(Chore.completed == False).all():  # noqa: E712
+        if c.assigned_to_user_id is None:
+            continue
         if c.due_date == today:
-            create_notification(
-                household_id=household.id,
-                user_id=c.assigned_to_user_id,
-                type="chore_due",
-                title="⏰ Chore due today",
-                message=f"{c.title} is due today",
-                link_url=url_for("main.db_test_list"),
+            _msg = f"{c.title} is due today"
+            already_notified = (
+                Notification.query.filter_by(
+                    household_id=household.id,
+                    user_id=c.assigned_to_user_id,
+                    type="chore_due",
+                )
+                .filter(Notification.created_at >= _utc_today_start, Notification.created_at < _utc_today_end)
+                .filter(Notification.message == _msg)
+                .first()
             )
+            if not already_notified:
+                create_notification(
+                    household_id=household.id,
+                    user_id=c.assigned_to_user_id,
+                    type="chore_due",
+                    title="⏰ Chore due today",
+                    message=_msg,
+                    link_url=url_for("main.db_test_list"),
+                )
         elif c.due_date and c.due_date < today:
-            create_notification(
-                household_id=household.id,
-                user_id=c.assigned_to_user_id,
-                type="chore_overdue",
-                title="⚠️ Chore overdue",
-                message=f"{c.title} is overdue",
-                link_url=url_for("main.db_test_list"),
+            _msg = f"{c.title} is overdue"
+            already_notified = (
+                Notification.query.filter_by(
+                    household_id=household.id,
+                    user_id=c.assigned_to_user_id,
+                    type="chore_overdue",
+                )
+                .filter(Notification.created_at >= _utc_today_start, Notification.created_at < _utc_today_end)
+                .filter(Notification.message == _msg)
+                .first()
             )
+            if not already_notified:
+                create_notification(
+                    household_id=household.id,
+                    user_id=c.assigned_to_user_id,
+                    type="chore_overdue",
+                    title="⚠️ Chore overdue",
+                    message=_msg,
+                    link_url=url_for("main.db_test_list"),
+                )
 
     # I also send reminders shortly before a chore is due so people get a heads-up.
     REMINDER_WINDOW_DAYS = 2
     for c in base_query.filter(Chore.completed == False).all():  # noqa: E712
-        if not c.due_date:
+        if c.assigned_to_user_id is None or not c.due_date:
             continue
-
         days_left = (c.due_date - today).days
         if 1 <= days_left <= REMINDER_WINDOW_DAYS:
-            create_notification(
-                household_id=household.id,
-                user_id=c.assigned_to_user_id,
-                type="chore_reminder",
-                title="🔔 Chore reminder",
-                message=f"“{c.title}” is due in {days_left} day(s)",
-                link_url=url_for("main.db_test_list"),
+            _msg = f'"{c.title}" is due in {days_left} day(s)'
+            already_notified = (
+                Notification.query.filter_by(
+                    household_id=household.id,
+                    user_id=c.assigned_to_user_id,
+                    type="chore_reminder",
+                )
+                .filter(Notification.created_at >= _utc_today_start, Notification.created_at < _utc_today_end)
+                .filter(Notification.message == _msg)
+                .first()
             )
+            if not already_notified:
+                create_notification(
+                    household_id=household.id,
+                    user_id=c.assigned_to_user_id,
+                    type="chore_reminder",
+                    title="🔔 Chore reminder",
+                    message=_msg,
+                    link_url=url_for("main.db_test_list"),
+                )
 
     # I split chores into groups so the UI can show overdue/upcoming/no-date/completed clearly.
     overdue_chores = (
@@ -460,8 +526,17 @@ def db_test_list():
         .all()
     )
 
-    # Completed chores are not shown in the main list view; they drop off once done.
-    completed_chores = []
+    # Completed chores for the Completed tab (all household) and for "my" completed section on My Chores tab.
+    completed_chores = (
+        base_query
+        .filter(Chore.completed == True)  # noqa: E712
+        .order_by(Chore.completed_at.desc())
+        .all()
+    )
+    my_completed_chores = [
+        c for c in completed_chores
+        if c.assigned_to_user_id == user_id or c.completed_by_id == user_id
+    ]
 
     active_chores = overdue_chores + upcoming_chores + no_date_chores
     users = get_household_members(household.id)
@@ -542,40 +617,38 @@ def db_test_list():
             "is_me": (u.id == session.get("user_id")),
         })
 
-    # I also fetch pending swaps again here because the template expects this list.
-    pending_swaps = (
-        ChoreSwapRequest.query
-        .filter_by(
-            household_id=household.id,
-            to_user_id=session.get("user_id"),
-            status="pending",
+    response = make_response(
+        render_template(
+            "db_test.html",
+            household=household,
+            overdue_chores=overdue_chores,
+            upcoming_chores=upcoming_chores,
+            no_date_chores=no_date_chores,
+            completed_chores=completed_chores,
+            my_completed_chores=my_completed_chores,
+
+            distribution=distribution,
+            unassigned_count=unassigned_count,
+            max_count=max_count,
+            max_minutes=max_minutes,
+            overdue_stats=overdue_stats,
+
+            users_by_id=users_by_id,
+            household_members=users,
+
+            chores_by_user=chores_by_user,
+            incoming_swaps=incoming_swaps,
+            outgoing_swaps=outgoing_swaps,
+            pending_swaps=incoming_swaps,
+
+            is_household_admin=_is_household_admin(user_id),
         )
-        .order_by(ChoreSwapRequest.created_at.desc())
-        .all()
     )
-
-    return render_template(
-        "db_test.html",
-        household=household,
-        overdue_chores=overdue_chores,
-        upcoming_chores=upcoming_chores,
-        no_date_chores=no_date_chores,
-        completed_chores=completed_chores,
-
-        distribution=distribution,
-        unassigned_count=unassigned_count,
-        max_count=max_count,
-        max_minutes=max_minutes,
-        overdue_stats=overdue_stats,
-
-        users_by_id=users_by_id,
-        household_members=users,
-
-        chores_by_user=chores_by_user,
-        incoming_swaps=incoming_swaps,
-        outgoing_swaps=outgoing_swaps,
-        pending_swaps=pending_swaps,
-    )
+    # Prevent back/forward cache so returning to this page always shows current state (e.g. completed chores don’t show “Mark complete” again).
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @main_bp.route("/db-test/add", methods=["POST"])
@@ -649,28 +722,29 @@ def _utc_now():
 def _next_due_date_for_repeat(due_date: date | None, repeat_type: str) -> date | None:
     """
     Compute the next due date when a recurring chore is completed.
-    Uses the completed chore's due_date as the base. Returns None if repeat_type is "none" or due_date is None.
+    For daily/weekly/monthly, each period is a unique instance; uses due_date as base if set, else today.
+    Returns None only if repeat_type is "none".
     """
-    if not due_date or not repeat_type or repeat_type == "none":
+    if not repeat_type or repeat_type == "none":
         return None
     today = date.today()
-    # Daily means tomorrow; weekly means same day next week; monthly means same day next month (or last day if needed).
+    base = due_date if due_date else today
+    # Daily: next day; weekly: same weekday next week; monthly: same day next month.
     if repeat_type == "daily":
-        return today + timedelta(days=1)
+        return base + timedelta(days=1)
     if repeat_type == "weekly":
-        return today + timedelta(weeks=1)
+        return base + timedelta(weeks=1)
     if repeat_type == "monthly":
-        # Next month, same day if possible; else last day of month
-        if today.month == 12:
-            next_year, next_month = today.year + 1, 1
+        if base.month == 12:
+            next_year, next_month = base.year + 1, 1
         else:
-            next_year, next_month = today.year, today.month + 1
+            next_year, next_month = base.year, base.month + 1
         try:
-            return date(next_year, next_month, min(today.day, 28))
+            return date(next_year, next_month, min(base.day, 28))
         except ValueError:
             import calendar
             last = calendar.monthrange(next_year, next_month)[1]
-            return date(next_year, next_month, min(today.day, last))
+            return date(next_year, next_month, min(base.day, last))
     return None
 
 
@@ -711,6 +785,7 @@ def db_test_toggle(chore_id: int):
     """I use this route to mark a chore as done/undone."""
     household = get_active_household()
     chore = Chore.query.get_or_404(chore_id)
+    db.session.refresh(chore)
 
     # I check household IDs here to make sure users can’t access chores from other households.
     if chore.household_id != household.id:
@@ -726,8 +801,15 @@ def db_test_toggle(chore_id: int):
 
     user = User.query.get(current_user_id)
     today = date.today()
+    action = (request.form.get("action") or "").strip().lower()
 
-    if chore.completed:
+    # When user chose Undo but chore is not completed, give feedback instead of silent redirect.
+    if action == "undo" and not chore.completed:
+        flash("This chore is not currently completed.", "info")
+        return redirect(url_for("main.db_test_list"))
+
+    # Undo: only when user explicitly chose Undo and chore is completed.
+    if action == "undo" and chore.completed:
         if chore.points_awarded and chore.completed_by_id:
             completer = User.query.get(chore.completed_by_id)
             if completer:
@@ -737,11 +819,50 @@ def db_test_toggle(chore_id: int):
         chore.completed_by_id = None
         chore.points_awarded = None
         chore.was_overdue = False
+        # If a next recurring chore was already generated, remove it so there are no phantom future chores.
+        # Next occurrences are created unassigned, so we match assigned_to_user_id=None.
+        repeat_type = getattr(chore, "repeat_type", None) or "none"
+        next_due = _next_due_date_for_repeat(chore.due_date, repeat_type)
+        if next_due is not None:
+            phantom = (
+                Chore.query.filter_by(
+                    household_id=chore.household_id,
+                    title=chore.title,
+                    assigned_to_user_id=None,
+                    repeat_type=repeat_type,
+                    completed=False,
+                    due_date=next_due,
+                )
+                .first()
+            )
+            if phantom:
+                db.session.delete(phantom)
         db.session.commit()
         return redirect(url_for("main.db_test_list"))
 
-    # Mark complete: timezone-safe timestamp and overdue flag
+    # Already completed: treat as idempotent (no double points, no undo by accident).
+    db.session.expire(chore)
+    if chore.completed:
+        return redirect(url_for("main.db_test_list"))
+
+    # Atomic claim: only one request can complete this chore (same chore can appear in All Active and My Chores).
     now_utc = _utc_now()
+    update_result = Chore.query.filter_by(id=chore_id, completed=False).update(
+        {
+            "completed": True,
+            "completed_at": now_utc,
+            "completed_by_id": current_user_id,
+        },
+        synchronize_session=False,
+    )
+    rows_updated = getattr(update_result, "rowcount", update_result)
+    if rows_updated == 0:
+        db.session.refresh(chore)
+        if chore.completed:
+            flash("This chore was already completed.", "info")
+        return redirect(url_for("main.db_test_list"))
+
+    # Keep in-memory chore in sync and set derived fields
     chore.completed = True
     chore.completed_at = now_utc
     chore.completed_by_id = current_user_id
@@ -761,14 +882,20 @@ def db_test_toggle(chore_id: int):
     # Reference: SQLAlchemy (2024) Updating and deleting rows with the ORM. https://docs.sqlalchemy.org/en/21/orm/tutorial.html#updating-and-deleting-with-the-orm
     db.session.commit()
 
+    # Re-fetch from DB so recurring and notification use persisted state (no stale identity map).
+    chore = Chore.query.get(chore_id)
+    if not chore or not chore.completed:
+        return redirect(url_for("main.db_test_list"))
+
     # Recurring: create next chore (same title, estimated_minutes, assignee, household)
     repeat_type = getattr(chore, "repeat_type", None) or "none"
     next_due = _next_due_date_for_repeat(chore.due_date, repeat_type)
     if next_due is not None:
+        # Next occurrence is unassigned so it appears in the pool until someone assigns it.
         next_chore = Chore(
             title=chore.title,
             household_id=chore.household_id,
-            assigned_to_user_id=chore.assigned_to_user_id,
+            assigned_to_user_id=None,
             due_date=next_due,
             repeat_type=repeat_type,
             estimated_minutes=getattr(chore, "estimated_minutes", None),
@@ -885,13 +1012,44 @@ def db_test_assign(chore_id: int):
     if chore.household_id != household.id:
         abort(404)
 
-    chore.assigned_to_user_id = session["user_id"]
+    current_user_id = session.get("user_id")
+    assignee_id_raw = (request.form.get("assignee_id") or "").strip()
+    if assignee_id_raw:
+        current_user = User.query.get(current_user_id)
+        is_admin = current_user.role and str(current_user.role).strip().lower() == "admin"
+        if not is_admin:
+            flash("Only a household admin can assign a chore to another member.", "danger")
+            return redirect(url_for("main.db_test_list"))
+        try:
+            assignee_id = int(assignee_id_raw)
+        except ValueError:
+            flash("Invalid assignee.", "danger")
+            return redirect(url_for("main.db_test_list"))
+        if assignee_id != current_user_id:
+            assignee = User.query.get_or_404(assignee_id)
+            if assignee.household_id != household.id:
+                flash("That user is not in your household.", "danger")
+                return redirect(url_for("main.db_test_list"))
+            chore.assigned_to_user_id = assignee_id
+            db.session.commit()
+            create_notification(
+                household_id=household.id,
+                user_id=assignee_id,
+                type="chore_assigned",
+                title="Chore assigned",
+                message=f"\"{chore.title}\" is now assigned to you",
+                link_url=url_for("main.db_test_list"),
+            )
+            flash(f"Chore assigned to {assignee.name}.", "success")
+            return redirect(url_for("main.db_test_list"))
+
+    chore.assigned_to_user_id = current_user_id
     db.session.commit()
 
     # Notify the user they were assigned this chore (household-aware, no duplicate).
     create_notification(
         household_id=household.id,
-        user_id=session["user_id"],
+        user_id=current_user_id,
         type="chore_assigned",
         title="Chore assigned",
         message=f"“{chore.title}” is now assigned to you",
@@ -914,6 +1072,10 @@ def db_test_unassign(chore_id: int):
         abort(404)
 
     chore.assigned_to_user_id = None
+    ChoreSwapRequest.query.filter(
+        ChoreSwapRequest.offered_chore_id == chore.id,
+        ChoreSwapRequest.status == "pending",
+    ).update({"status": "declined"})
     db.session.commit()
 
     flash("Chore assignment cleared.", "info")
@@ -1091,6 +1253,17 @@ def accept_chore_swap(swap_id: int):
     ).update({"status": "declined"})
 
     db.session.commit()
+
+    # Notify the original assignee that the swap was accepted and the chore is no longer theirs.
+    if swap.from_user_id:
+        create_notification(
+            household_id=household.id,
+            user_id=swap.from_user_id,
+            type="chore_swap_accepted",
+            title="Swap accepted",
+            message=f'Your swap request for "{offered.title}" was accepted.',
+            link_url=url_for("main.db_test_list"),
+        )
 
     flash("Accepted. The chore is now assigned to you.", "success")
     return redirect(url_for("main.db_test_list"))
@@ -1610,6 +1783,7 @@ def expenses():
     my_owed_lines = []
     owed_by_person = {}
     owed_to_me_by_person = {}
+    owed_to_me_lines = []
 
     # I loop through each expense and use the shares table to work out who owes what.
     for exp in expenses_list:
@@ -1620,11 +1794,16 @@ def expenses():
                 if payer and payer.id != current_user_id:
                     amt = float(share.amount_owed)
                     if amt > 0:
-                        my_total_owed += amt
+                        if not share.paid:
+                            my_total_owed += amt
                         my_owed_lines.append({
                             "to_name": payer.name,
                             "expense_title": exp.title,
                             "amount": amt,
+                            "share_id": share.id,
+                            "paid": share.paid,
+                            "paid_method": share.paid_method,
+                            "paid_at": share.paid_at,
                         })
                         owed_by_person[payer.name] = owed_by_person.get(payer.name, 0.0) + amt
 
@@ -1633,10 +1812,20 @@ def expenses():
                 if share.user_id != current_user_id:
                     amt = float(share.amount_owed)
                     if amt > 0:
-                        my_total_owed_to_me += amt
+                        if not share.paid:
+                            my_total_owed_to_me += amt
                         debtor = next((u for u in household_members if u.id == share.user_id), None)
                         debtor_name = debtor.name if debtor else f"User {share.user_id}"
                         owed_to_me_by_person[debtor_name] = owed_to_me_by_person.get(debtor_name, 0.0) + amt
+                        owed_to_me_lines.append({
+                            "debtor_name": debtor_name,
+                            "expense_title": exp.title,
+                            "amount": amt,
+                            "share_id": share.id,
+                            "paid": share.paid,
+                            "paid_method": share.paid_method,
+                            "paid_at": share.paid_at,
+                        })
 
     my_net = my_total_owed_to_me - my_total_owed
 
@@ -1648,6 +1837,8 @@ def expenses():
     owed_to_me_by_person_list.sort(key=lambda x: x["total"], reverse=True)
 
     my_owed_lines.sort(key=lambda x: x["amount"], reverse=True)
+
+    users_by_id = {u.id: u for u in household_members}
 
     return render_template(
         "expenses.html",
@@ -1661,6 +1852,8 @@ def expenses():
         my_owed_lines=my_owed_lines,
         my_owed_by_person=my_owed_by_person,
         owed_to_me_by_person=owed_to_me_by_person_list,
+        owed_to_me_lines=owed_to_me_lines,
+        users_by_id=users_by_id,
     )
 
 
@@ -1808,6 +2001,83 @@ def add_expense():
         return redirect(url_for("main.expenses"))
 
 
+@main_bp.route("/expenses/share/<int:share_id>/settle", methods=["POST"])
+@login_required
+@household_required
+def settle_expense_share(share_id: int):
+    """Mark one person's share of an expense as paid."""
+    household = get_active_household()
+    current_user_id = session.get("user_id")
+
+    share = ExpenseShare.query.get_or_404(share_id)
+    expense = Expense.query.get_or_404(share.expense_id)
+
+    if expense.household_id != household.id:
+        abort(404)
+
+    # Only the debtor (person who owes) or the payer can mark it settled
+    if share.user_id != current_user_id and expense.paid_by_user_id != current_user_id:
+        flash("You can only settle your own shares.", "danger")
+        return redirect(url_for("main.expenses"))
+
+    if share.paid:
+        flash("This share is already marked as paid.", "info")
+        return redirect(url_for("main.expenses"))
+
+    method = (request.form.get("method") or "cash").strip().lower()
+    if method not in ("cash", "revolut", "bank_transfer"):
+        method = "cash"
+
+    share.paid = True
+    share.paid_method = method
+    share.paid_at = datetime.utcnow()
+    db.session.commit()
+
+    # Notify the payer that they've been paid back (if debtor is settling their own share)
+    if share.user_id != expense.paid_by_user_id and share.user_id == current_user_id:
+        method_label = {"cash": "cash", "revolut": "Revolut", "bank_transfer": "bank transfer"}.get(method, method)
+        debtor = User.query.get(share.user_id)
+        if debtor:
+            create_notification(
+                household_id=household.id,
+                user_id=expense.paid_by_user_id,
+                type="expense_settled",
+                title="💰 Payment received",
+                message=f'{debtor.name} paid their share of "{expense.title}" via {method_label}.',
+                link_url=url_for("main.expenses"),
+            )
+
+    flash("Share marked as paid.", "success")
+    return redirect(url_for("main.expenses"))
+
+
+@main_bp.route("/expenses/share/<int:share_id>/unsettle", methods=["POST"])
+@login_required
+@household_required
+def unsettle_expense_share(share_id: int):
+    """Revert a share back to unpaid. Only the expense payer can do this."""
+    household = get_active_household()
+    current_user_id = session.get("user_id")
+
+    share = ExpenseShare.query.get_or_404(share_id)
+    expense = Expense.query.get_or_404(share.expense_id)
+
+    if expense.household_id != household.id:
+        abort(404)
+
+    if expense.paid_by_user_id != current_user_id:
+        flash("Only the person who paid the expense can revert a settlement.", "danger")
+        return redirect(url_for("main.expenses"))
+
+    share.paid = False
+    share.paid_method = None
+    share.paid_at = None
+    db.session.commit()
+
+    flash("Share reverted to unpaid.", "info")
+    return redirect(url_for("main.expenses"))
+
+
 # ---------------------------------------------------------
 # Calendar  NEW
 # ---------------------------------------------------------
@@ -1832,39 +2102,54 @@ def calendar_events():
     """
     I use this route to return chores + expenses as JSON for FullCalendar.
 
-    - Chores use due_date
-    - Expenses use created_at date (converted to just a date)
+    - Chores use due_date; daily recurring chores are expanded to every day in the visible range.
+    - Expenses use created_at date (converted to just a date).
     """
     household = get_active_household()
     today = date.today()
     current_user_id = session.get("user_id")
 
+    # FullCalendar sends start and end as ISO date-time strings for the visible range.
+    start_param = request.args.get("start")
+    end_param = request.args.get("end")
+    range_start = today.replace(day=1)
+    range_end = today
+    if start_param:
+        try:
+            range_start = date.fromisoformat(start_param[:10])
+        except (ValueError, TypeError):
+            pass
+    if end_param:
+        try:
+            range_end = date.fromisoformat(end_param[:10])
+        except (ValueError, TypeError):
+            pass
+    if range_end < range_start:
+        range_end = range_start
+
     events = []
+    # Track (title, day) we already added so daily expansion doesn't duplicate.
+    added_chore_day = set()
 
-    # I add chores as calendar events using their due date.
-    chores = (
-        Chore.query
-        .filter_by(household_id=household.id)
-        .filter(Chore.due_date != None)  # noqa: E711
-        .all()
-    )
-
-    for c in chores:
-        # I set a simple status so the frontend can colour-code events.
-        status = "upcoming"
+    def _status_and_class(c, due):
+        """Return status string for colour-coding: completed, overdue, due_today, unassigned, upcoming."""
         if c.completed:
-            status = "completed"
-        elif c.due_date and c.due_date < today:
-            status = "overdue"
-        elif c.due_date == today:
-            status = "due_today"
+            return "completed"
+        if due < today:
+            return "overdue"
+        if due == today:
+            return "due_today"
+        if c.assigned_to_user_id is None:
+            return "unassigned"
+        return "upcoming"
 
+    def _add_chore_event(c, due):
+        status = _status_and_class(c, due)
         assigned_to_me = (c.assigned_to_user_id == current_user_id)
-
         events.append({
-            "id": f"chore-{c.id}",
+            "id": f"chore-{c.id}-{due.isoformat()}",
             "title": f"🧹 {c.title}",
-            "start": c.due_date.isoformat(),
+            "start": due.isoformat(),
             "allDay": True,
             "url": url_for("main.db_test_list"),
             "extendedProps": {
@@ -1873,9 +2158,56 @@ def calendar_events():
                 "completed": bool(c.completed),
                 "assigned_to_me": bool(assigned_to_me),
                 "assigned_to_user_id": c.assigned_to_user_id,
+                "unassigned": c.assigned_to_user_id is None,
                 "chore_id": c.id,
             },
         })
+        added_chore_day.add((c.title, due))
+
+    # Chores with due_date in the visible range (includes one-off and recurring instances).
+    chores_in_range = (
+        Chore.query
+        .filter_by(household_id=household.id)
+        .filter(Chore.due_date != None, Chore.due_date >= range_start, Chore.due_date <= range_end)  # noqa: E711
+        .all()
+    )
+    for c in chores_in_range:
+        _add_chore_event(c, c.due_date)
+
+    # Daily recurring: show an event for every day in range. Real rows already added above; fill remaining days with synthetic events.
+    daily_chores = (
+        Chore.query
+        .filter_by(household_id=household.id)
+        .filter(Chore.repeat_type == "daily")
+        .all()
+    )
+    daily_titles = list({c.title for c in daily_chores})
+    day = range_start
+    while day <= range_end:
+        for title in daily_titles:
+            if (title, day) in added_chore_day:
+                continue
+            # Synthetic event for a day that has no chore row yet.
+            status = "overdue" if day < today else ("due_today" if day == today else "upcoming")
+            events.append({
+                "id": f"chore-daily-{abs(hash(title)) % 100000}-{day.isoformat()}",
+                "title": f"🧹 {title}",
+                "start": day.isoformat(),
+                "allDay": True,
+                "url": url_for("main.db_test_list"),
+                "extendedProps": {
+                    "kind": "chore",
+                    "status": status,
+                    "completed": False,
+                    "assigned_to_me": False,
+                    "assigned_to_user_id": None,
+                    "unassigned": True,
+                    "chore_id": None,
+                    "synthetic": True,
+                },
+            })
+            added_chore_day.add((title, day))
+        day += timedelta(days=1)
 
     # I add expenses as calendar events using the created_at date as a timeline marker.
     expenses = (

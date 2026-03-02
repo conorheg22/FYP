@@ -7,8 +7,35 @@
     <p class="page-subtitle">View household chores and events in a shared calendar.</p>
   </div>
 
+  <div class="calendar-legend mb-3 d-flex flex-wrap gap-3 align-items-center">
+    <span class="legend-item fc-event-completed"><span class="legend-dot"></span> Completed</span>
+    <span class="legend-item fc-event-overdue"><span class="legend-dot"></span> Overdue</span>
+    <span class="legend-item fc-event-due_today"><span class="legend-dot"></span> Due today</span>
+    <span class="legend-item fc-event-unassigned"><span class="legend-dot"></span> Unassigned</span>
+    <span class="legend-item fc-event-upcoming"><span class="legend-dot"></span> Upcoming (assigned)</span>
+    <span class="legend-item fc-event-expense"><span class="legend-dot"></span> Expense</span>
+  </div>
+
   <div id="calendar" style="min-height: 650px;"></div>
 </div>
+
+<style>
+  .calendar-legend .legend-item { font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.35rem; }
+  .calendar-legend .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .fc-event-completed .legend-dot { background: #22c55e; }
+  .fc-event-overdue .legend-dot { background: #dc2626; }
+  .fc-event-due_today .legend-dot { background: #f59e0b; }
+  .fc-event-unassigned .legend-dot { background: #94a3b8; }
+  .fc-event-upcoming .legend-dot { background: #6366f1; }
+  .fc-event-expense .legend-dot { background: #0ea5e9; }
+  /* Event colours on the calendar */
+  .fc .fc-event.fc-event-chore-completed { background: #22c55e; border-color: #16a34a; color: #fff; }
+  .fc .fc-event.fc-event-chore-overdue { background: #dc2626; border-color: #b91c1c; color: #fff; }
+  .fc .fc-event.fc-event-chore-due_today { background: #f59e0b; border-color: #d97706; color: #fff; }
+  .fc .fc-event.fc-event-chore-unassigned { background: #94a3b8; border-color: #64748b; color: #fff; }
+  .fc .fc-event.fc-event-chore-upcoming { background: #6366f1; border-color: #4f46e5; color: #fff; }
+  .fc .fc-event.fc-event-expense { background: #0ea5e9; border-color: #0284c7; color: #fff; }
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script>
@@ -17,7 +44,15 @@ document.addEventListener("DOMContentLoaded", function () {
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: "dayGridMonth",
     height: "auto",
-    events: "/api/calendar/events"
+    events: "/api/calendar/events",
+    eventDidMount: function (info) {
+      const ext = info.event.extendedProps;
+      if (ext.kind === "chore" && ext.status) {
+        info.el.classList.add("fc-event-chore-" + ext.status);
+      } else if (ext.kind === "expense") {
+        info.el.classList.add("fc-event-expense");
+      }
+    }
   });
   calendar.render();
 });

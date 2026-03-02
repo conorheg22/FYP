@@ -153,28 +153,58 @@
         <ul class="list-group">
           {% for line in my_owed_lines %}
             <li class="list-group-item">
-              <div class="d-flex justify-content-between">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                  <div class="fw-semibold">You owe {{ line.to_name }}</div>
+                  <div class="fw-semibold">
+                    You owe {{ line.to_name }}
+                    {% if line.paid %}
+                      <span class="badge bg-success ms-1">✓ Paid</span>
+                    {% endif %}
+                  </div>
                   <small class="text-muted">{{ line.expense_title }}</small>
+                  {% if line.paid and line.paid_at %}
+                    <br><small class="text-muted">
+                      via {% if line.paid_method == 'cash' %}Cash{% elif line.paid_method == 'revolut' %}Revolut{% elif line.paid_method == 'bank_transfer' %}Bank Transfer{% else %}{{ line.paid_method }}{% endif %}
+                      on {{ line.paid_at.strftime("%d %b %Y") }}
+                    </small>
+                  {% endif %}
                 </div>
-                <div class="fw-bold">€{{ "%.2f"|format(line.amount) }}</div>
+                <div class="d-flex align-items-center gap-2">
+                  {% if line.paid %}
+                    <span class="fw-bold text-muted text-decoration-line-through">€{{ "%.2f"|format(line.amount) }}</span>
+                  {% else %}
+                    <span class="fw-bold">€{{ "%.2f"|format(line.amount) }}</span>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Mark paid
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li>
+                          <form method="POST" action="{{ url_for('main.settle_expense_share', share_id=line.share_id) }}">
+                            <input type="hidden" name="method" value="cash">
+                            <button type="submit" class="dropdown-item">💵 Cash</button>
+                          </form>
+                        </li>
+                        <li>
+                          <form method="POST" action="{{ url_for('main.settle_expense_share', share_id=line.share_id) }}">
+                            <input type="hidden" name="method" value="revolut">
+                            <button type="submit" class="dropdown-item">💳 Revolut</button>
+                          </form>
+                        </li>
+                        <li>
+                          <form method="POST" action="{{ url_for('main.settle_expense_share', share_id=line.share_id) }}">
+                            <input type="hidden" name="method" value="bank_transfer">
+                            <button type="submit" class="dropdown-item">🏦 Bank Transfer</button>
+                          </form>
+                        </li>
+                      </ul>
+                    </div>
+                  {% endif %}
+                </div>
               </div>
             </li>
           {% endfor %}
         </ul>
-
-        <div class="mt-3">
-          <div class="fw-bold mb-2">Totals by person</div>
-          <ul class="list-group">
-            {% for p in my_owed_by_person %}
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-semibold">{{ p.name }}</span>
-                <span class="fw-bold">€{{ "%.2f"|format(p.total) }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
       {% else %}
         <p class="text-muted mb-0">You don’t owe anything right now.</p>
       {% endif %}
@@ -184,17 +214,47 @@
     <div class="col-lg-6">
       <h6 class="fw-bold mb-2">Who owes me</h6>
 
-      {% if owed_to_me_by_person %}
+      {% if owed_to_me_lines %}
         <ul class="list-group">
-          {% for p in owed_to_me_by_person %}
-            <li class="list-group-item d-flex justify-content-between">
-              <span class="fw-semibold">{{ p.name }}</span>
-              <span class="fw-bold">€{{ "%.2f"|format(p.total) }}</span>
+          {% for line in owed_to_me_lines %}
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <div class="fw-semibold">
+                    {{ line.debtor_name }}
+                    {% if line.paid %}
+                      <span class="badge bg-success ms-1">✓ Received</span>
+                    {% else %}
+                      <span class="badge bg-warning text-dark ms-1">Pending</span>
+                    {% endif %}
+                  </div>
+                  <small class="text-muted">{{ line.expense_title }}</small>
+                  {% if line.paid and line.paid_at %}
+                    <br><small class="text-muted">
+                      via {% if line.paid_method == 'cash' %}Cash{% elif line.paid_method == 'revolut' %}Revolut{% elif line.paid_method == 'bank_transfer' %}Bank Transfer{% else %}{{ line.paid_method }}{% endif %}
+                      on {{ line.paid_at.strftime("%d %b %Y") }}
+                    </small>
+                  {% endif %}
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  {% if line.paid %}
+                    <span class="fw-bold text-muted text-decoration-line-through">€{{ "%.2f"|format(line.amount) }}</span>
+                    <form method="POST" action="{{ url_for('main.unsettle_expense_share', share_id=line.share_id) }}">
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">Revert</button>
+                    </form>
+                  {% else %}
+                    <span class="fw-bold">€{{ "%.2f"|format(line.amount) }}</span>
+                    <a href="https://revolut.me" target="_blank" class="btn btn-sm btn-outline-primary">
+                      💳 Request via Revolut
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
             </li>
           {% endfor %}
         </ul>
         <small class="text-muted d-block mt-2">
-          This is based on expenses you paid for where others have shares.
+          "Request via Revolut" opens Revolut — amounts must be requested manually.
         </small>
       {% else %}
         <p class="text-muted mb-0">Nobody owes you anything right now.</p>
@@ -210,12 +270,23 @@
     <ul class="list-group list-group-flush">
       {% for expense in expenses %}
         <li class="list-group-item px-0">
-          <div class="d-flex justify-content-between">
+          <div class="d-flex justify-content-between align-items-start">
             <div>
-              <strong>{{ expense.title }}</strong><br>
-              <small class="text-muted">Paid by {{ expense.payer.name }}</small>
+              <strong>{{ expense.title }}</strong>
+              <br><small class="text-muted">Paid by {{ expense.payer.name }}</small>
             </div>
             <span class="fw-bold">€{{ "%.2f"|format(expense.total_amount) }}</span>
+          </div>
+          <div class="mt-2 d-flex flex-wrap gap-2">
+            {% for share in expense.shares %}
+              {% set member = users_by_id.get(share.user_id) %}
+              {% if member %}
+                <span class="badge {% if share.paid %}bg-success{% else %}bg-light text-dark border{% endif %} px-2 py-1" style="font-size:0.75rem;">
+                  {{ member.name }}: €{{ "%.2f"|format(share.amount_owed) }}
+                  {% if share.paid %}✓{% else %}pending{% endif %}
+                </span>
+              {% endif %}
+            {% endfor %}
           </div>
         </li>
       {% endfor %}

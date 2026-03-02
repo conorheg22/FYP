@@ -19,7 +19,7 @@
   {% set card_class = "is-unassigned" %}
 {% endif %}
 
-{% set can_edit_delete = (chore.assigned_to_user_id == session.get("user_id")) %}
+{% set can_edit_delete = (chore.assigned_to_user_id == session.get("user_id")) or (is_household_admin|default(false)) %}
 
 <div class="homi-chore-card {{ card_class }}">
   <div class="homi-chore-left">
@@ -90,14 +90,16 @@
             chore.assigned_to_user_id == session.get("user_id")
           ) %}
           {% if can_complete %}
-            <form class="mt-2" method="POST"
-                  action="{{ url_for('main.db_test_toggle', chore_id=chore.id) }}">
+            <form class="mt-2 homi-chore-toggle-form" method="POST"
+                  action="{{ url_for('main.db_test_toggle', chore_id=chore.id) }}"
+                  data-chore-id="{{ chore.id }}"
+                  onsubmit="var b=this.querySelector('button[type=submit]');if(b)b.disabled=true;">
               {% if chore.completed %}
-                <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                <button type="submit" name="action" value="undo" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                   Undo
                 </button>
               {% else %}
-                <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">
+                <button type="submit" name="action" value="complete" class="btn btn-sm btn-primary rounded-pill px-3">
                   Mark complete
                 </button>
               {% endif %}
@@ -128,54 +130,16 @@
               </button>
             </form>
 
-            <!-- Swap -->
+            <!-- Swap (opens shared modal via JS so it’s never inside a hidden panel) -->
             <button
-              class="homi-action-btn"
-              data-bs-toggle="modal"
-              data-bs-target="#swapModal{{ chore.id }}"
-              title="Request a chore swap"
+              class="homi-action-btn js-open-swap-modal"
               type="button"
+              title="Request a chore swap"
+              data-swap-url="{{ url_for('main.request_chore_swap', chore_id=chore.id) }}"
             >
               <span class="homi-action-ico" aria-hidden="true">🔁</span>
               <span class="homi-action-label">Swap</span>
             </button>
-
-            <!-- Swap modal -->
-            <div class="modal fade" id="swapModal{{ chore.id }}" tabindex="-1">
-              <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content homi-modal">
-                  <div class="modal-header">
-                    <h5 class="modal-title">Request chore swap</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-
-                  <form method="POST"
-                        action="{{ url_for('main.request_chore_swap', chore_id=chore.id) }}">
-                    <div class="modal-body">
-                      <label class="form-label">Swap with</label>
-                      <select name="to_user_id" class="form-select" required>
-                        {% for uid, user in users_by_id.items() %}
-                          {% if uid != session.get("user_id") %}
-                            <option value="{{ uid }}">{{ user.name }}</option>
-                          {% endif %}
-                        {% endfor %}
-                      </select>
-                    </div>
-
-                    <div class="modal-footer">
-                      <button type="button" class="homi-btn homi-btn-ghost" data-bs-dismiss="modal">
-                        Cancel
-                      </button>
-                      <button type="submit" class="homi-btn homi-btn-primary"
-                              onclick="this.disabled=true; this.form.submit();">
-                        Send request
-                      </button>
-                    </div>
-                  </form>
-
-                </div>
-              </div>
-            </div>
 
           {% endif %}
 
