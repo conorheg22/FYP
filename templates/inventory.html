@@ -379,6 +379,18 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     color: #212529;
   }
 
+  /* Add item card at top — highlighted */
+  .inv-add-top {
+    border: 1px solid rgba(13, 110, 253, 0.25);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.06) 0%, rgba(13, 110, 253, 0.02) 100%);
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.08);
+  }
+
+  .inv-add-top .inv-section-title {
+    color: #0d6efd;
+  }
+
   /* Improve focus visibility without changing theme globally */
   .btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible, .homi-btn:focus-visible {
     outline: 2px solid rgba(13, 110, 253, 0.35);
@@ -443,6 +455,65 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
       {% if low_stock_items %}<span><strong>{{ low_stock_items|length }}</strong> low stock</span>{% endif %}
       {% if ns.expiring > 0 %}<span><strong>{{ ns.expiring }}</strong> expiring soon</span>{% endif %}
       <a href="{{ url_for('main.shopping_list') }}" class="ms-auto text-decoration-none">Shopping list →</a>
+    </div>
+
+    <!-- Add item — highlighted at top -->
+    <div class="homi-card inv-card inv-add-top p-4 mb-4">
+      <h5 class="inv-section-title mb-2"><i class="bi bi-plus-lg me-2"></i>Add item</h5>
+      <p class="inv-muted small mb-3">Tip: set expiry dates for perishables.</p>
+      <form method="POST" action="{{ url_for('main.inventory_add') }}" class="row g-3">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_name">Name</label>
+          <input id="inv_add_name" class="form-control" name="name" placeholder="e.g., Milk" required>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="inv_add_qty">Quantity</label>
+          <input id="inv_add_qty" class="form-control" name="quantity" type="number" min="0" value="1">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="inv_add_unit">Unit</label>
+          <input id="inv_add_unit" class="form-control" name="unit" placeholder="e.g., packs">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_notes">Notes</label>
+          <input id="inv_add_notes" class="form-control" name="notes" placeholder="Optional">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_category">Category</label>
+          <select id="inv_add_category" class="form-select" name="category">
+            <option value="">—</option>
+            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_subcat">Sub-category</label>
+          <input id="inv_add_subcat" class="form-control" name="sub_category" placeholder="Optional">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_location">Location</label>
+          <select id="inv_add_location" class="form-select" name="location">
+            <option value="">—</option>
+            {% for l in locations %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label" for="inv_add_exp_type">Expiry type</label>
+          <select id="inv_add_exp_type" class="form-select" name="expiry_type">
+            <option value="">—</option>
+            <option value="best_before">Best-before</option>
+            <option value="use_by">Use-by</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label" for="inv_add_exp_date">Expiry date</label>
+          <input id="inv_add_exp_date" class="form-control" name="expiry_date" type="date">
+        </div>
+        <div class="col-12 col-md-6 d-flex align-items-end">
+          <button class="homi-btn homi-btn-primary" type="submit">
+            <i class="bi bi-plus-lg me-1"></i> Add to inventory
+          </button>
+        </div>
+      </form>
     </div>
   {% endif %}
 
@@ -517,7 +588,7 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     <div class="homi-card inv-card p-4 text-center">
       <p class="inv-muted mb-2">No items match this view.</p>
       {% if active_filter == "all" %}
-        <p class="inv-muted small mb-0">Expand <strong>Add item</strong> below to add your first inventory item.</p>
+        <p class="inv-muted small mb-0">Use the <strong>Add item</strong> form above to add your first inventory item.</p>
       {% else %}
         <a href="{{ url_for('main.inventory_list', filter='all') }}">View all items</a>
       {% endif %}
@@ -864,73 +935,6 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
       </div>
     </div>
 
-    <!-- Add item (collapsible, collapsed by default) -->
-    <div class="inv-collapse-card mb-4">
-      <div
-        class="inv-collapse-header"
-        data-bs-toggle="collapse"
-        data-bs-target="#invAddItem"
-        aria-expanded="false"
-        aria-controls="invAddItem"
-      >
-        <span class="inv-section-title mb-0"><i class="bi bi-plus-lg me-2"></i>Add item</span>
-        <i class="bi bi-chevron-down inv-collapse-chevron"></i>
-      </div>
-      <div id="invAddItem" class="collapse inv-collapse-body">
-        <p class="inv-muted small mb-3">Tip: set expiry dates for perishables.</p>
-        <form method="POST" action="{{ url_for('main.inventory_add') }}" class="row g-3">
-          <div class="col-12 col-md-4">
-            <label class="form-label" for="inv_add_name">Name</label>
-            <input id="inv_add_name" class="form-control" name="name" placeholder="e.g., Milk" required>
-          </div>
-          <div class="col-6 col-md-2">
-            <label class="form-label" for="inv_add_qty">Quantity</label>
-            <input id="inv_add_qty" class="form-control" name="quantity" type="number" min="0" value="1">
-          </div>
-          <div class="col-6 col-md-2">
-            <label class="form-label" for="inv_add_unit">Unit</label>
-            <input id="inv_add_unit" class="form-control" name="unit" placeholder="e.g., packs">
-          </div>
-          <div class="col-12 col-md-4">
-            <label class="form-label" for="inv_add_notes">Notes</label>
-            <input id="inv_add_notes" class="form-control" name="notes" placeholder="Optional">
-          </div>
-          <div class="col-12 col-md-4">
-            <label class="form-label" for="inv_add_category">Category</label>
-            <select id="inv_add_category" class="form-select" name="category">
-              <option value="">—</option>
-              {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-            </select>
-          </div>
-          <div class="col-12 col-md-4">
-            <label class="form-label" for="inv_add_subcat">Sub-category</label>
-            <input id="inv_add_subcat" class="form-control" name="sub_category" placeholder="Optional">
-          </div>
-          <div class="col-12 col-md-4">
-            <label class="form-label" for="inv_add_location">Location</label>
-            <select id="inv_add_location" class="form-select" name="location">
-              <option value="">—</option>
-              {% for l in locations %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
-            </select>
-          </div>
-          <div class="col-6 col-md-3">
-            <label class="form-label" for="inv_add_exp_type">Expiry type</label>
-            <select id="inv_add_exp_type" class="form-select" name="expiry_type">
-              <option value="">—</option>
-              <option value="best_before">Best-before</option>
-              <option value="use_by">Use-by</option>
-            </select>
-          </div>
-          <div class="col-6 col-md-3">
-            <label class="form-label" for="inv_add_exp_date">Expiry date</label>
-            <input id="inv_add_exp_date" class="form-control" name="expiry_date" type="date">
-          </div>
-          <div class="col-12">
-            <button class="homi-btn homi-btn-primary" type="submit">Add to inventory</button>
-          </div>
-        </form>
-      </div>
-    </div>
   {% endif %}
 
 </div>
