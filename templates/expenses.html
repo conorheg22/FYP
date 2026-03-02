@@ -5,9 +5,10 @@
 {% block head %}
 {{ super() }}
 <style>
-  /* So "Mark paid" dropdown is not covered by the next list item */
+  /* So "Mark paid" dropdown is not covered by Recent expenses or other sections */
+  .expense-summary-card { position: relative; z-index: 10; }
   .expense-owed-list .list-group-item { position: relative; }
-  .expense-owed-list .dropdown-menu { z-index: 1060; }
+  .expense-owed-list .dropdown-menu { z-index: 1070; }
 </style>
 {% endblock %}
 
@@ -119,7 +120,7 @@
 <!-- =========================
      NEW: My summary (who I owe / who owes me / what for)
      ========================= -->
-<div class="card homi mb-4 p-3">
+<div class="card homi mb-4 p-3 expense-summary-card">
   <h5 class="mb-3">My Expense Summary</h5>
 
   <div class="row g-3">
