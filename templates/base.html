@@ -447,6 +447,16 @@
                 </div>
               {% endfor %}
             </div>
+            <script>
+              document.addEventListener("DOMContentLoaded", function () {
+                document.querySelectorAll(".alert.alert-dismissible").forEach(function (alert) {
+                  setTimeout(function () {
+                    const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                    if (bsAlert) bsAlert.close();
+                  }, 4000);
+                });
+              });
+            </script>
           </div>
         {% endif %}
       {% endwith %}
