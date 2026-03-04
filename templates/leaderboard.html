@@ -127,11 +127,11 @@
             </td>
             <td>
               {% for b in row.badges %}
-                {% if b == 'first_clean' %}<span class="badge bg-secondary me-1">First Clean</span>{% endif %}
-                {% if b == 'on_fire' %}<span class="badge bg-danger me-1">On Fire</span>{% endif %}
-                {% if b == 'reliable' %}<span class="badge bg-info me-1">The Reliable One</span>{% endif %}
-                {% if b == 'speedrunner' %}<span class="badge bg-warning text-dark me-1">Speedrunner</span>{% endif %}
-                {% if b == 'household_hero' %}<span class="badge bg-success me-1">Household Hero</span>{% endif %}
+                {% if b == 'first_clean' %}<span class="badge bg-secondary me-1" data-bs-toggle="tooltip" title="Completed at least 1 chore">First Clean</span>{% endif %}
+                {% if b == 'on_fire' %}<span class="badge bg-danger me-1" data-bs-toggle="tooltip" title="7+ day streak">On Fire</span>{% endif %}
+                {% if b == 'reliable' %}<span class="badge bg-info me-1" data-bs-toggle="tooltip" title="Completed 10+ chores">The Reliable One</span>{% endif %}
+                {% if b == 'speedrunner' %}<span class="badge bg-warning text-dark me-1" data-bs-toggle="tooltip" title="Completed 3+ chores in one day">Speedrunner</span>{% endif %}
+                {% if b == 'household_hero' %}<span class="badge bg-success me-1" data-bs-toggle="tooltip" title="Weekly champion — most points in the last 7 days">Household Hero</span>{% endif %}
               {% endfor %}
               {% if not row.badges %}<span class="text-muted">—</span>{% endif %}
             </td>

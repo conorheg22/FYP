@@ -511,6 +511,15 @@
       }
     </script>
 
+    <!-- Bootstrap tooltips (e.g. badge meanings on hover) -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("[data-bs-toggle=\"tooltip\"]").forEach(function (el) {
+          if (window.bootstrap) new bootstrap.Tooltip(el);
+        });
+      });
+    </script>
+
     <!-- Hover-to-open for the Account dropdown (NEW) -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {

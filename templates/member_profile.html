@@ -70,11 +70,11 @@
         <h5 class="fw-bold mb-3">Badges</h5>
         <div class="d-flex flex-wrap gap-2">
           {% for b in badges %}
-            {% if b == 'first_clean' %}<span class="badge bg-secondary">First Clean</span>{% endif %}
-            {% if b == 'on_fire' %}<span class="badge bg-danger">On Fire</span>{% endif %}
-            {% if b == 'reliable' %}<span class="badge bg-info">The Reliable One</span>{% endif %}
-            {% if b == 'speedrunner' %}<span class="badge bg-warning text-dark">Speedrunner</span>{% endif %}
-            {% if b == 'household_hero' %}<span class="badge bg-success">Household Hero</span>{% endif %}
+            {% if b == 'first_clean' %}<span class="badge bg-secondary" data-bs-toggle="tooltip" title="Completed at least 1 chore">First Clean</span>{% endif %}
+            {% if b == 'on_fire' %}<span class="badge bg-danger" data-bs-toggle="tooltip" title="7+ day streak">On Fire</span>{% endif %}
+            {% if b == 'reliable' %}<span class="badge bg-info" data-bs-toggle="tooltip" title="Completed 10+ chores">The Reliable One</span>{% endif %}
+            {% if b == 'speedrunner' %}<span class="badge bg-warning text-dark" data-bs-toggle="tooltip" title="Completed 3+ chores in one day">Speedrunner</span>{% endif %}
+            {% if b == 'household_hero' %}<span class="badge bg-success" data-bs-toggle="tooltip" title="Weekly champion — most points in the last 7 days">Household Hero</span>{% endif %}
           {% endfor %}
         </div>
       </div>

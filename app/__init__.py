@@ -81,18 +81,34 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # Automatically add any missing columns on startup — safe to run on every deploy
+        # Add expense_share paid columns if missing (SQLite doesn't support ADD COLUMN IF NOT EXISTS in older versions)
         from sqlalchemy import text
         with db.engine.connect() as conn:
-            for sql in [
-                "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid BOOLEAN NOT NULL DEFAULT FALSE",
-                "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid_method VARCHAR(40)",
-                "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP",
-            ]:
-                try:
-                    conn.execute(text(sql))
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
+            dialect_name = db.engine.dialect.name
+            if dialect_name == "sqlite":
+                result = conn.execute(text("PRAGMA table_info(expense_share)"))
+                existing = {row[1] for row in result}
+                for col, sql in [
+                    ("paid", "ALTER TABLE expense_share ADD COLUMN paid INTEGER NOT NULL DEFAULT 0"),
+                    ("paid_method", "ALTER TABLE expense_share ADD COLUMN paid_method VARCHAR(40)"),
+                    ("paid_at", "ALTER TABLE expense_share ADD COLUMN paid_at DATETIME"),
+                ]:
+                    if col not in existing:
+                        try:
+                            conn.execute(text(sql))
+                            conn.commit()
+                        except Exception:
+                            conn.rollback()
+            else:
+                for sql in [
+                    "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid BOOLEAN NOT NULL DEFAULT FALSE",
+                    "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid_method VARCHAR(40)",
+                    "ALTER TABLE expense_share ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP",
+                ]:
+                    try:
+                        conn.execute(text(sql))
+                        conn.commit()
+                    except Exception:
+                        conn.rollback()
 
     return app
