@@ -2419,19 +2419,6 @@ def _chore_analytics_for_window(household_id: int, members: list, since: datetim
 @household_required
 def analytics():
     """I use this route to show household analytics: chores, expenses, inventory, and overview."""
-    try:
-        return _analytics_impl()
-    except Exception as e:
-        import traceback
-        return (
-            f"<pre>Analytics error: {e!r}\n\n{traceback.format_exc()}</pre>",
-            500,
-            {"Content-Type": "text/html; charset=utf-8"},
-        )
-
-
-def _analytics_impl():
-    """Implementation of analytics page logic (wrapped for error reporting)."""
     user = User.query.get(session["user_id"])
     household = get_active_household()
     members = get_household_members(household.id)
