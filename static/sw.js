@@ -1,6 +1,8 @@
 /**
  * HOMI PWA Service Worker
  * Caches static assets for faster repeat loads and basic offline support.
+ * REF: MDN Web Docs (2024) Service Worker API - https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
+ * REF: MDN Web Docs (2024) Progressive Web Apps overview - https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps
  */
 // Cache name and list of URLs to store when the worker first installs.
 const CACHE_NAME = "homi-v1";

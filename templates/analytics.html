@@ -7,7 +7,7 @@
     <h1 class="page-title">Household Analytics</h1>
     <p class="page-subtitle text-muted mb-4">{{ household.name }}</p>
 
-    {# --- Summary cards (6) --- #}
+    {# --- Summary cards (6). REF: Bootstrap Documentation (2024) Cards and Collapse Components - https://getbootstrap.com/docs/5.3/components/card/ --- #}
     <div class="row g-3 mb-4">
       <div class="col-6 col-md-4">
         <div class="card homi border-0 shadow-sm">
@@ -288,6 +288,7 @@
   </div>
 </div>
 
+<!-- REF: Chart.js (2024) Chart.js Documentation - https://www.chartjs.org/docs/latest/ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (function () {
@@ -339,6 +340,7 @@
     toggleEmpty('choresPerMember', !hasData);
     if (!hasData) return;
     const ctx = document.getElementById('chartChoresPerMember').getContext('2d');
+    // REF: Chart.js (2024) Chart.js Documentation - https://www.chartjs.org/docs/latest/
     charts.choresPerMember = new Chart(ctx, {
       type: 'bar',
       data: {

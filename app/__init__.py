@@ -26,6 +26,7 @@ def create_app():
     - Wires up config, database, migrations and blueprints
     """
     # Load environment variables from the .env file in the project root so we can use SECRET_KEY, database URL, etc.
+    # REF: Render Documentation - Environment Variables - https://render.com/docs/environment-variables
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     load_dotenv(os.path.join(project_root, ".env"))
 
@@ -43,7 +44,8 @@ def create_app():
     # ---- Core configuration values ----
     # These values control how the app behaves. They can come from .env or use defaults.
 
-    # Sessions need a secret key so Flask can sign cookies safely. We check both possible .env variable names.
+    # Sessions need a secret key so Flask can sign cookies safely. We check both possible .env variable names (e.g. set on Render).
+    # REF: Render Documentation - Environment Variables - https://render.com/docs/environment-variables
     app.config["SECRET_KEY"] = (
         os.getenv("SECRET_KEY")
         or os.getenv("FLASK_SECRET_KEY")
@@ -55,6 +57,7 @@ def create_app():
     default_sqlite = "sqlite:///" + db_path.replace("\\", "/")
 
     # Use DATABASE_URL from env; rewrite Render's postgres:// to postgresql:// for SQLAlchemy/psycopg2.
+    # REF: Stack Overflow - SQLAlchemy postgres:// vs postgresql:// - https://stackoverflow.com/questions/62688256/sqlalchemy-exc-nosuchmoduleerror-cant-load-plugin-sqlalchemy-dialectspostgres
     db_url = os.getenv("DATABASE_URL", default_sqlite)
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)

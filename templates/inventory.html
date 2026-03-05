@@ -866,7 +866,7 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
     <h5 class="inv-section-title mb-3">Quick actions &amp; tools</h5>
     <p class="inv-muted mb-3">Expand when you need them.</p>
 
-    <!-- Frequently used (collapsible, collapsed by default) -->
+    <!-- Frequently used (collapsible, collapsed by default). REF: Bootstrap Documentation (2024) Cards and Collapse - https://getbootstrap.com/docs/5.3/components/card/ ; W3Schools Bootstrap Collapse - https://www.w3schools.com/bootstrap5/bootstrap_collapse.php -->
     <div class="inv-collapse-card mb-3">
       <div
         class="inv-collapse-header"
@@ -1088,6 +1088,7 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
         var id = hash.replace('item-', '');
         var collapseEl = document.getElementById('editItem' + id);
         if (collapseEl) {
+          // REF: W3Schools (n.d.) Bootstrap Collapse Component - https://www.w3schools.com/bootstrap5/bootstrap_collapse.php
           var bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, { toggle: false });
           bsCollapse.show();
         }

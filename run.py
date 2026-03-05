@@ -8,5 +8,6 @@ app = create_app()
 
 # Only start the server when this file is run directly, not when it is imported.
 if __name__ == "__main__":
+    # REF: Render Documentation - Environment Variables - https://render.com/docs/environment-variables
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)

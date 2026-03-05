@@ -15,7 +15,7 @@
 
     <title>{% block title %}HOMI — Making Shared Living Simple{% endblock %}</title>
 
-    <!-- PWA -->
+    <!-- PWA: web app manifest for installability and metadata. REF: MDN Web Docs (2024) Progressive Web Apps overview - https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps -->
     <link rel="manifest" href="{{ url_for('main.manifest') }}" />
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/homi-logo.png') }}" />
 
@@ -207,7 +207,7 @@
             <span class="fw-bold ms-2">HOMI</span>
           </a>
 
-          <!-- Mobile: hamburger toggles this block -->
+          <!-- Mobile: hamburger toggles this block. REF: Bootstrap Documentation (2024) Cards and Collapse - https://getbootstrap.com/docs/5.3/components/card/ ; W3Schools Bootstrap Collapse - https://www.w3schools.com/bootstrap5/bootstrap_collapse.php -->
           <button
             class="navbar-toggler"
             type="button"
@@ -512,7 +512,7 @@
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
     </script>
 
-    <!-- PWA: register service worker -->
+    <!-- PWA: register service worker. REF: MDN Web Docs (2024) Service Worker API - https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API -->
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {

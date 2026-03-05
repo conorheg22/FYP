@@ -51,6 +51,8 @@ main_bp = Blueprint("main", __name__)
 
 # ---------------------------------------------------------
 # PWA: service worker and manifest (served from root for correct scope)
+# REF: MDN Web Docs (2024) Progressive Web Apps overview - https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps
+# REF: MDN Web Docs (2024) Service Worker API - https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
 # ---------------------------------------------------------
 @main_bp.route("/sw.js")
 def service_worker():
