@@ -31,11 +31,12 @@ def create_app():
     load_dotenv(os.path.join(project_root, ".env"))
 
     # Create the Flask app and tell it where to find HTML templates and static files (CSS, JS, images).
+    # Use absolute paths from project root so templates/static are found when running via gunicorn (e.g. on Render).
     app = Flask(
         __name__,
         instance_relative_config=True,  # Puts instance/ folder outside package
-        template_folder="../templates",
-        static_folder="../static",
+        template_folder=os.path.join(project_root, "templates"),
+        static_folder=os.path.join(project_root, "static"),
     )
 
     # Create the instance folder if it does not exist. This is where the SQLite database file (app.db) and other app data live.
