@@ -5,8 +5,10 @@
    Reference: Hegarty, C. (2024) Header and Footer Design — IS3312 Project Phase 1.
    Unpublished student project, University College Cork.
 */
+/* This file defines design tokens (spacing, colours, type), then global and component styles for the HOMI app. */
 
 /* --------- DESIGN TOKENS (8px grid + typography + palette) --------- */
+/* Spacing, typography scale, and colour palette used across the site. */
 :root {
   /* 8px grid */
   --space-1: 8px;
@@ -67,6 +69,7 @@
 }
 
 /* --------- GENERAL --------- */
+/* Base page and body styles, smooth scrolling, and heading/paragraph hierarchy. */
 html {
   scroll-behavior: smooth;
 }
@@ -1096,7 +1099,8 @@ footer.homi small {
   min-width: 0;
 }
 
-/* Old circle style (no longer used, kept harmless) */
+/* [DEAD CODE] - no longer used, consider removing */
+/*
 .homi-check-circle {
   width: 22px;
   height: 22px;
@@ -1108,6 +1112,7 @@ footer.homi small {
   border-color: var(--success);
   background: rgba(34, 197, 94, 0.15);
 }
+*/
 
 /* -----------------------------
    NEW: clearer "mark done" checkbox button (box style)

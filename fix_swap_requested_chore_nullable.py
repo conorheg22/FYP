@@ -3,6 +3,7 @@ One-off migration: make chore_swap_request.requested_chore_id nullable in SQLite
 The model already has nullable=True; the DB table was created with NOT NULL.
 Run once: python fix_swap_requested_chore_nullable.py
 """
+# We need the app and database; the upgrade uses raw SQLite to recreate the table.
 import os
 import sys
 
@@ -61,6 +62,7 @@ def upgrade():
         conn.close()
 
 
+# When run directly, create the app and run the upgrade inside an app context.
 if __name__ == "__main__":
     app = create_app()
     with app.app_context():

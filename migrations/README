@@ -1,1 +1,3 @@
+Alembic migrations use a single database; this file documents that setup.
+
 Single-database configuration for Flask.

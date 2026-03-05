@@ -2,6 +2,7 @@
 <!--
   base.html
   Main layout used by every page in the HOMI app.
+  Structure: head (meta, CSS, PWA), then scripts for toasts and notifications, then navbar, main content area, footer, and scripts.
 -->
 <html lang="en">
   <head>
@@ -43,6 +44,7 @@
     <!-- Toast container -->
     <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1100;"></div>
 
+    <!-- On page load we fetch unread notifications, show them as toasts, and fill the navbar notification dropdown. -->
     <script>
     const TOAST_SHOWN_KEY = "homi_toast_shown_ids";
 

@@ -12,7 +12,7 @@ Defines the main entities:
 """
 
 # We need datetime for default timestamps and Werkzeug for safe password hashing.
-from datetime import datetime, date
+from datetime import datetime  # , date  # [DEAD CODE] - never used, consider removing
 from werkzeug.security import generate_password_hash, check_password_hash
 # db is the SQLAlchemy instance from __init__.py; we use it to define tables and columns.
 from . import db
@@ -450,6 +450,19 @@ class InventoryItem(db.Model):
     # Optional minimum stock threshold: when quantity <= min_stock, "Add to Shopping List" is shown.
     # Default 0 means the button appears when quantity hits zero.
     min_stock = db.Column(db.Integer, nullable=True, default=0)
+
+    # Optional assignment to a household member (e.g. "Jo's milk" or "bought by Alex").
+    assigned_to_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=True,
+        index=True,
+    )
+    assigned_to = db.relationship(
+        "User",
+        foreign_keys=[assigned_to_user_id],
+        backref=db.backref("assigned_inventory_items", lazy="dynamic"),
+    )
 
 
 # ---------------------------------------------------------

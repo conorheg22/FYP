@@ -1,3 +1,4 @@
+# This file is used by Alembic to run database migrations; it connects to the Flask app's database.
 import logging
 from logging.config import fileConfig
 
@@ -15,6 +16,7 @@ fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
 
+# Get the database engine from the Flask app so migrations can connect.
 def get_engine():
     try:
         # this works with Flask-SQLAlchemy<3 and Alchemical
@@ -24,6 +26,7 @@ def get_engine():
         return current_app.extensions['migrate'].db.engine
 
 
+# Turn the database URL into a string for use in offline migrations.
 def get_engine_url():
     try:
         return get_engine().url.render_as_string(hide_password=False).replace(
@@ -45,6 +48,7 @@ target_db = current_app.extensions['migrate'].db
 # ... etc.
 
 
+# Return the current table metadata so Alembic knows the schema.
 def get_metadata():
     if hasattr(target_db, 'metadatas'):
         return target_db.metadatas[None]
@@ -107,6 +111,7 @@ def run_migrations_online():
             context.run_migrations()
 
 
+# Run either offline migrations (SQL only) or online (against the live database).
 if context.is_offline_mode():
     run_migrations_offline()
 else:

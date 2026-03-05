@@ -1,3 +1,4 @@
+# Python dependencies for the HOMI Flask app.
 Flask==3.0.3
 Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.0.7

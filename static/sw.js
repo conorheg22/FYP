@@ -2,6 +2,7 @@
  * HOMI PWA Service Worker
  * Caches static assets for faster repeat loads and basic offline support.
  */
+// Cache name and list of URLs to store when the worker first installs.
 const CACHE_NAME = "homi-v1";
 const STATIC_ASSETS = [
   "/static/css/site.css",
@@ -11,12 +12,14 @@ const STATIC_ASSETS = [
   "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css",
 ];
 
+// On install: open cache, add all static assets, then activate right away.
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
   );
 });
 
+// On activate: remove old caches and take control of open pages.
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -25,6 +28,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// On fetch: skip non-GET and API; cache static/CDN; for HTML use network first, then cache.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);

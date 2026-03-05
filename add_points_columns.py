@@ -6,6 +6,7 @@ Run from project root: python add_points_columns.py
 Use if you get "no such column" for points, streak_count, last_streak_date,
 completed_at, completed_by_id, or points_awarded. Safe to run multiple times.
 """
+# We need the app and database, plus SQLAlchemy to run SQL and inspect tables.
 import os
 import sys
 
@@ -15,6 +16,7 @@ from app import create_app, db
 from sqlalchemy import text, inspect
 
 
+# Add points and streak columns to user, and completion columns to chore, if they are missing.
 def main():
     app = create_app()
     with app.app_context():

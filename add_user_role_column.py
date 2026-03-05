@@ -6,6 +6,7 @@ Run from project root with: python add_user_role_column.py
 Use this if you hit "no such column: user.role" and prefer not to fix the
 migration history right now. Safe to run multiple times (skips if column exists).
 """
+# We need the app and database, plus SQLAlchemy to run SQL and inspect the user table.
 import os
 import sys
 
@@ -16,6 +17,7 @@ from app import create_app, db
 from sqlalchemy import text, inspect
 
 
+# Create the app, check if the user table has a role column, and add it if missing.
 def main():
     app = create_app()
     with app.app_context():

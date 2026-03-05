@@ -11,6 +11,7 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Inventory page: add, edit, use, and delete items; filter by category; view frequent and low-stock items grouped by category. -->
 <style>
   /* Consistent card styling (reusing homi-card base) */
   .inv-card {
@@ -496,6 +497,15 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
             {% for l in locations %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
           </select>
         </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="inv_add_assigned">Assigned to</label>
+          <select id="inv_add_assigned" class="form-select" name="assigned_to_user_id">
+            <option value="">— No one</option>
+            {% for u in household_members|default([]) %}
+              <option value="{{ u.id }}">{{ u.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <div class="col-6 col-md-3">
           <label class="form-label" for="inv_add_exp_type">Expiry type</label>
           <select id="inv_add_exp_type" class="form-select" name="expiry_type">
@@ -686,6 +696,10 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
                       {% if item.notes %}
                         <span class="inv-chip">📝 <strong>{{ item.notes }}</strong></span>
                       {% endif %}
+
+                      {% if item.assigned_to %}
+                        <span class="inv-chip">👤 <strong>{{ item.assigned_to.name }}</strong></span>
+                      {% endif %}
                     </div>
                   </div>
 
@@ -787,6 +801,16 @@ https://getbootstrap.com/docs/4.0/components/forms/ -->
                         <option value="">—</option>
                         {% for l in locations %}
                           <option value="{{ l }}" {% if item.location == l %}selected{% endif %}>{{ l }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="inv_assigned_{{ item.id }}">Assigned to</label>
+                      <select id="inv_assigned_{{ item.id }}" class="form-select" name="assigned_to_user_id">
+                        <option value="">— No one</option>
+                        {% for u in household_members|default([]) %}
+                          <option value="{{ u.id }}" {% if item.assigned_to_user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
                         {% endfor %}
                       </select>
                     </div>

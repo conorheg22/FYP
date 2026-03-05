@@ -5,6 +5,7 @@ Revises: ${down_revision | comma,n}
 Create Date: ${create_date}
 
 """
+# Template for new migration scripts; Alembic fills in revision IDs and upgrade/downgrade bodies.
 from typing import Sequence, Union
 
 from alembic import op

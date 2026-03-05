@@ -1,4 +1,5 @@
 # This file is the entry point when you run the app (e.g. python run.py).
+# We need the OS module for the port setting and the app factory to create the Flask app.
 import os
 from app import create_app
 

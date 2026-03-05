@@ -7,7 +7,7 @@ App factory and core configuration for the Flask application.
 - Registers the main blueprint that holds all routes
 """
 
-# We use Flask for the web app, SQLAlchemy for the database, and Migrate for database version changes.
+# We need these libraries: the web framework (Flask), database (SQLAlchemy), migrations (Migrate), and loading of environment variables (dotenv).
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -78,10 +78,11 @@ def create_app():
     from .main import main_bp
     app.register_blueprint(main_bp)
 
+    # The next steps need the app to be "active". We create all tables and then add any missing columns to expense_share.
     with app.app_context():
         db.create_all()
 
-        # Add expense_share paid columns if missing (SQLite doesn't support ADD COLUMN IF NOT EXISTS in older versions)
+        # Make sure the expense_share table has paid, paid_method, and paid_at. SQLite and Postgres are handled differently.
         from sqlalchemy import text
         with db.engine.connect() as conn:
             dialect_name = db.engine.dialect.name

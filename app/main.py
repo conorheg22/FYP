@@ -9,7 +9,7 @@ Contains:
 - Inventory items (Item 12)
 """
 
-# Flask pieces we use for routes, templates, redirects, and JSON responses.
+# Flask and add-on imports used for routes, templates, redirects, and API responses.
 from flask import (
     Blueprint,
     current_app,
@@ -24,7 +24,7 @@ from flask import (
     jsonify,
     send_from_directory,
 )
-# Our database models: users, households, chores, expenses, swaps, inventory, notifications.
+# Database models and repeat-type options used by the routes below.
 from .models import (
     Chore,
     Household,
@@ -134,6 +134,7 @@ INVENTORY_LOCATIONS = [
 # ---------------------------------------------------------
 # Auth helpers
 # ---------------------------------------------------------
+# Decorators and helpers that check if the user is logged in and has an active household.
 def login_required(f):
     """I use this to protect routes so only logged-in users can access them."""
     @wraps(f)
@@ -282,6 +283,7 @@ def index():
 # ---------------------------------------------------------
 # Household
 # ---------------------------------------------------------
+# Routes for creating a household, joining with a code, managing it, and leaving.
 @main_bp.route("/create_household", methods=["GET", "POST"])
 @login_required
 def create_household():
@@ -1408,6 +1410,8 @@ def inventory_list():
         else:
             grouped["Uncategorised"].append(item)
 
+    household_members = get_household_members(household.id)
+
     return render_template(
         "inventory.html",
         household=household,
@@ -1421,6 +1425,7 @@ def inventory_list():
         days_to_expiry=days_to_expiry,
         is_expired=is_expired,
         is_expiring_soon=is_expiring_soon,
+        household_members=household_members,
     )
 
 
@@ -1477,6 +1482,17 @@ def inventory_add():
         except ValueError:
             expiry_date = None
 
+    # Optional assignment to a household member.
+    assigned_to_user_id = None
+    assigned_raw = (request.form.get("assigned_to_user_id") or "").strip()
+    if assigned_raw:
+        try:
+            uid = int(assigned_raw)
+            if User.query.filter_by(id=uid, household_id=household.id).first():
+                assigned_to_user_id = uid
+        except ValueError:
+            pass
+
     item = InventoryItem(
         household_id=household.id,
         name=name,
@@ -1489,6 +1505,7 @@ def inventory_add():
         use_count=1,
         expiry_type=expiry_type,
         expiry_date=expiry_date,
+        assigned_to_user_id=assigned_to_user_id,
     )
     db.session.add(item)
     db.session.commit()
@@ -1551,6 +1568,19 @@ def inventory_edit(item_id: int):
 
     item.expiry_type = expiry_type
     item.expiry_date = expiry_date
+
+    # Optional assignment to a household member.
+    assigned_to_user_id = None
+    assigned_raw = (request.form.get("assigned_to_user_id") or "").strip()
+    if assigned_raw:
+        try:
+            uid = int(assigned_raw)
+            if User.query.filter_by(id=uid, household_id=household.id).first():
+                assigned_to_user_id = uid
+        except ValueError:
+            pass
+    if hasattr(item, "assigned_to_user_id"):
+        item.assigned_to_user_id = assigned_to_user_id
 
     # I increment use_count so the “frequent items” section reflects what gets updated/used.
     if hasattr(item, "use_count"):
