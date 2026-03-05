@@ -82,8 +82,10 @@ def create_app():
     from .main import main_bp
     app.register_blueprint(main_bp)
 
-    # The next steps need the app to be "active". We create all tables and then add any missing columns to expense_share.
+    # The next steps need the app to be "active". Run pending migrations first (e.g. add inventory_item.assigned_to_user_id on Render), then create any missing tables.
     with app.app_context():
+        from flask_migrate import upgrade
+        upgrade()
         db.create_all()
 
         # Make sure the expense_share table has paid, paid_method, and paid_at. SQLite and Postgres are handled differently.
